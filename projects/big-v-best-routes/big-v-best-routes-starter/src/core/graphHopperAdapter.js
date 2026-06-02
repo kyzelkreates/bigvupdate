@@ -75,9 +75,15 @@ function buildDemoRoute(originCoords, destCoords, vehicleProfile) {
  * Main routing entry point.
  * Returns a normalised route result object — same shape regardless of provider/demo.
  */
-export async function calculateGraphHopperRoute({ origin, destination, vehicle, apiKey }) {
+export async function calculateGraphHopperRoute({ origin, destination, vehicle, apiKey, forceDemo = false }) {
   // Prefer build-time env var over runtime settings key
   const resolvedKey = ENV_KEY || apiKey || "";
+  // Respect settings demoMode toggle
+  if (forceDemo) return buildDemoRoute(
+    { lat: 51.4545, lon: -2.5879, label: origin },
+    { lat: 51.4816, lon: -3.1791, label: destination },
+    vehicleProfile,
+  );
   const vehicleProfile = mapVehicleToGraphHopperProfile(vehicle?.type);
 
   // Step 1 — Geocode

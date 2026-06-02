@@ -134,3 +134,37 @@ h1, h2, p { margin-top: 0; } h1 { font-size: clamp(30px, 4vw, 54px); line-height
 
 /* Pre-formatted env block */
 pre code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
+
+/* ─── MapLibre GL container ─────────────────────────────────────────────── */
+.maplibreContainer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.maplibreContainer .maplibregl-canvas { border-radius: 28px; }
+.maplibre-vehicle-marker { cursor: default; pointer-events: none; filter: drop-shadow(0 0 12px rgba(58,242,124,.7)); }
+.map-warning-pin { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,176,32,.2); border: 2px solid rgba(255,176,32,.7); display: grid; place-items: center; font-size: 15px; cursor: default; }
+.mapLoadingOverlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 14px; z-index: 5; pointer-events: none; }
+.mapLoadingDot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.7); } }
+
+/* ─── Toggle switch ─────────────────────────────────────────────────────── */
+.toggleSwitch { position: relative; display: inline-flex; align-items: center; gap: 8px; width: 80px; height: 38px; border-radius: 999px; border: 2px solid var(--line); background: rgba(255,255,255,.06); padding: 3px 10px 3px 3px; cursor: pointer; transition: background .2s, border-color .2s; user-select: none; flex-shrink: 0; }
+.toggleSwitch.on { background: rgba(58,242,124,.18); border-color: rgba(58,242,124,.5); }
+.toggleSwitch.off { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); }
+.toggleThumb { display: block; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; flex-shrink: 0; }
+.toggleSwitch.on .toggleThumb { transform: translateX(34px); background: var(--green); }
+.toggleSwitch.off .toggleThumb { transform: translateX(0); }
+.toggleLabel { position: absolute; right: 10px; font-size: 11px; font-weight: 800; color: var(--muted); pointer-events: none; }
+.toggleSwitch.on .toggleLabel { color: var(--green); right: auto; left: 10px; }
+
+/* ─── Settings sections ─────────────────────────────────────────────────── */
+.settingsSection { max-width: 660px; margin-bottom: 18px; }
+.settingsSectionHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.toggleRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.toggleRow:last-of-type { border-bottom: none; }
+
+/* ─── CSV summary grid ──────────────────────────────────────────────────── */
+.csvSummaryGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.csvSummaryItem { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: rgba(0,0,0,.18); }
+.csvSummaryItem span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.csvSummaryItem strong { font-size: 22px; font-weight: 900; }
+
+/* ─── maplibre-gl CSS import marker ────────────────────────────────────── */
+/* maplibre-gl styles are imported via JS — see NavigationMapShell.jsx */

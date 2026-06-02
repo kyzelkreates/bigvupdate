@@ -48,6 +48,7 @@ export default function App() {
         destination: state.trip.destination,
         vehicle: activeVehicle,
         apiKey: state.settings.graphHopperApiKey,
+        forceDemo: state.settings.demoMode === true,
       });
 
       setState((draft) => {
