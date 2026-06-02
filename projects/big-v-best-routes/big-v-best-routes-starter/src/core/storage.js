@@ -1,3 +1,5 @@
+import { DEFAULT_SERVICE_CONFIG, mergeWithDefaults, SCHEMA_VERSION } from '../config/defaultServiceConfig.js';
+
 /**
  * storage.js — Single Source of Truth (SSOT)
  * Big V's Best Routes — local-first state management.
@@ -180,7 +182,13 @@ export const initialState = {
     mapStyleUrl:         '',      // runtime override — env var VITE_MAP_STYLE_URL takes priority
     useMetric:           true,
     // demoMode removed — use VITE_ENABLE_DEV_ROUTE_FALLBACK=true in .env for dev fallback
+    demoMode:            false,   // user-controlled demo mode toggle in Settings
   },
+
+  // ── Service configuration (extended service provider settings) ────────────
+  // Managed by SettingsPage serviceConfig section.
+  // Deep-merged with DEFAULT_SERVICE_CONFIG on load — user settings preserved.
+  serviceConfig: null,  // populated by loadState() merge below
 
   // ── 4P3X Specialist AI Agent results ─────────────────────────────────────
   // Populated by agentOrchestrator.runAgentSuite() after every compliance run.
@@ -230,6 +238,57 @@ export function loadState() {
     return migrated;
   }
   return initialState;
+}
+
+// ─── serviceConfig SSOT helpers ──────────────────────────────────────────────
+
+/**
+ * Update partial serviceConfig in SSOT.
+ * Deep-merges partial config into current serviceConfig.
+ * @param {object} state   - current full state
+ * @param {object} partial - partial serviceConfig to merge
+ * @returns {object} new state
+ */
+export function updateServiceConfig(state, partial) {
+  return updateState(state, (draft) => {
+    draft.serviceConfig = mergeWithDefaults({ ...draft.serviceConfig, ...partial });
+  });
+}
+
+/**
+ * Reset serviceConfig to safe defaults.
+ */
+export function resetServiceConfig(state) {
+  return updateState(state, (draft) => {
+    draft.serviceConfig = mergeWithDefaults(null);
+  });
+}
+
+/**
+ * Save a test result for a specific service.
+ * @param {object} state      - current state
+ * @param {string} serviceName - 'mapping'|'geocoding'|'routing'|'overpass'|'ai'
+ * @param {object} result     - normalised test result from serviceTester.js
+ */
+export function saveServiceTestResult(state, serviceName, result) {
+  return updateState(state, (draft) => {
+    if (!draft.serviceConfig.testResults) draft.serviceConfig.testResults = {};
+    draft.serviceConfig.testResults[serviceName] = result;
+    // Also update the provider-level status
+    if (draft.serviceConfig[serviceName]) {
+      draft.serviceConfig[serviceName].status      = result.ok ? 'success' : 'failed';
+      draft.serviceConfig[serviceName].lastTestedAt = result.testedAt;
+    }
+  });
+}
+
+/**
+ * Set fallback provider in serviceConfig.
+ */
+export function setFallbackProvider(state, providerName) {
+  return updateState(state, (draft) => {
+    draft.serviceConfig.mapping.lastFallbackProvider = providerName;
+  });
 }
 
 export function saveState(state) {

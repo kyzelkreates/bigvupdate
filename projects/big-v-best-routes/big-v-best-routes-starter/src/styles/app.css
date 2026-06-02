@@ -399,3 +399,332 @@ pre code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
 
 /* Spin animation for rerouting icon */
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SERVICE SETTINGS PANEL — v2.2
+   Big V's Best Routes™ — Powered by 4P3X Intelligent AI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Settings panel wrap ─────────────────────────────────────────────────── */
+.settingsPanelWrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.settingsPanelHeader {
+  padding: 20px 20px 0;
+  margin-bottom: 4px;
+}
+.settingsPanelTitle {
+  font-size: clamp(18px, 3.5vw, 24px);
+  font-weight: 800;
+  color: var(--fg);
+  margin: 0 0 6px;
+  letter-spacing: -.3px;
+}
+.settingsPanelSubtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+.settingsBrand {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+/* ── Fallback warning banner ─────────────────────────────────────────────── */
+.fallbackWarningBanner {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(255,176,32,.1);
+  border: 1px solid rgba(255,176,32,.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--warning);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+/* ── Section layout ──────────────────────────────────────────────────────── */
+.settingsSection {
+  padding: 16px 20px 0;
+}
+.settingsSectionTitle {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 15px; font-weight: 700;
+  color: var(--fg); margin: 0 0 6px;
+}
+.settingsSectionDesc {
+  font-size: 12px; color: var(--muted);
+  margin: 0 0 12px; line-height: 1.5;
+}
+.settingsCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.legacySection { margin-top: 8px; }
+
+/* ── Service card (collapsible) ──────────────────────────────────────────── */
+.serviceCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.serviceCard.cardFailed  { border-color: rgba(220,53,69,.4); }
+.serviceCard.cardSuccess { border-color: rgba(58,242,124,.3); }
+
+.serviceCardHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; width: 100%; text-align: left;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--fg);
+}
+.serviceCardHeader:hover { background: rgba(255,255,255,.04); }
+.serviceCardTitle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600;
+}
+.serviceCardHeaderRight {
+  display: flex; align-items: center; gap: 8px;
+}
+.serviceCardBody {
+  padding: 4px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+.serviceCardActions {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; flex-wrap: wrap;
+}
+
+/* ── Settings fields ─────────────────────────────────────────────────────── */
+.settingsField { margin-bottom: 14px; }
+.settingsField:last-child { margin-bottom: 0; }
+.settingsLabel {
+  display: block;
+  font-size: 12px; font-weight: 600;
+  color: var(--muted); margin-bottom: 5px; letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.requiredMark { color: var(--danger); margin-left: 3px; }
+.settingsInput {
+  width: 100%; padding: 9px 12px;
+  background: rgba(0,0,0,.25);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--fg); font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.settingsInput:focus { border-color: var(--green); }
+.settingsInput.inputError { border-color: var(--danger); }
+.settingsSelect { appearance: none; cursor: pointer; }
+.settingsHint {
+  font-size: 11px; color: var(--muted);
+  margin: 4px 0 0; line-height: 1.4;
+}
+.settingsError {
+  font-size: 12px; color: var(--danger);
+  margin: 4px 0 0; display: flex; align-items: center; gap: 4px;
+}
+.settingsSuccess {
+  font-size: 12px; color: var(--green);
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 8px;
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────────────── */
+.toggleRow {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px;
+}
+.toggleLabel { flex: 1; margin-bottom: 0 !important; }
+.toggleHint {
+  display: block; text-transform: none;
+  letter-spacing: 0; font-weight: 400;
+  margin-top: 2px;
+}
+.toggleBtn {
+  display: flex; align-items: center; gap: 5px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--muted); padding: 2px 0; font-size: 13px;
+  flex-shrink: 0;
+}
+.toggleBtn.toggleOn { color: var(--green); }
+.toggleBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── API key input ───────────────────────────────────────────────────────── */
+.apiKeyDisplay {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.maskedKey {
+  font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 13px; color: var(--fg);
+  background: rgba(0,0,0,.2);
+  padding: 5px 10px; border-radius: 6px;
+  letter-spacing: 1px; flex: 1; min-width: 140px;
+}
+.apiKeyInputRow {
+  display: flex; align-items: center; gap: 6px;
+}
+.apiKeyInputRow .settingsInput { flex: 1; }
+.ghost.icon {
+  padding: 8px; background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center;
+}
+.ghost.icon:hover { background: rgba(255,255,255,.08); }
+.ghost.small { padding: 6px 10px; font-size: 12px; }
+.ghost.small.danger { color: var(--danger); border-color: rgba(220,53,69,.35); }
+.primary.small { padding: 6px 12px; font-size: 12px; }
+
+/* ── Provider status badge ───────────────────────────────────────────────── */
+.providerBadge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; padding: 3px 7px; border-radius: 20px;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.badge-success  { background: rgba(58,242,124,.12); border-color: rgba(58,242,124,.35); color: var(--green); }
+.badge-failed   { background: rgba(220,53,69,.12);  border-color: rgba(220,53,69,.35);  color: var(--danger); }
+.badge-untested { background: rgba(255,255,255,.06); border-color: var(--line);           color: var(--muted); }
+.badge-testing  { background: rgba(58,130,246,.12); border-color: rgba(58,130,246,.35); color: #5ba4fd; animation: pulse-blue .8s ease-in-out infinite; }
+.badge-fallback { background: rgba(255,176,32,.12); border-color: rgba(255,176,32,.35); color: var(--warning); }
+@keyframes pulse-blue { 0%,100%{opacity:1} 50%{opacity:.6} }
+.badgeTs { font-size: 10px; opacity: .7; margin-left: 2px; }
+.fallbackActiveBadge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--warning); background: rgba(255,176,32,.1);
+  border: 1px solid rgba(255,176,32,.3); border-radius: 20px;
+  padding: 2px 7px;
+}
+
+/* ── Test result block ───────────────────────────────────────────────────── */
+.testResultBlock {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; padding: 8px 10px; border-radius: 8px;
+  margin-top: 10px; line-height: 1.4;
+}
+.testOk   { background: rgba(58,242,124,.09); color: var(--green); border: 1px solid rgba(58,242,124,.25); }
+.testFail { background: rgba(220,53,69,.09);  color: var(--danger); border: 1px solid rgba(220,53,69,.25); }
+.testFallbackNote { font-size: 11px; opacity: .8; margin-left: 4px; }
+
+/* ── Info boxes ─────────────────────────────────────────────────────────── */
+.settingsInfoBox {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; color: var(--muted);
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 12px;
+  margin-top: 10px; line-height: 1.5;
+}
+.settingsInfoBox.warning {
+  color: var(--warning);
+  background: rgba(255,176,32,.08);
+  border-color: rgba(255,176,32,.3);
+}
+.settingsInfoBox.complianceNotice {
+  color: var(--muted); font-style: italic;
+}
+
+/* ── Compliance feature list ─────────────────────────────────────────────── */
+.complianceFeatureList {
+  list-style: none; padding: 0; margin: 10px 0 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px;
+}
+.complianceFeatureList li {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted);
+}
+
+/* ── Service health grid ─────────────────────────────────────────────────── */
+.serviceHealthGrid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 400px) { .serviceHealthGrid { grid-template-columns: 1fr; } }
+.serviceHealthItem {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.serviceHealthLabel {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.serviceHealthFallback {
+  font-size: 11px; color: var(--warning); opacity: .8;
+}
+
+/* ── Demo mode section ───────────────────────────────────────────────────── */
+.demoModeSection .settingsCard,
+.demoModeSection > div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px;
+}
+
+/* ── Reset section ───────────────────────────────────────────────────────── */
+.resetSection { padding-bottom: 8px; }
+.ghost.danger { color: var(--danger); border-color: rgba(220,53,69,.35); }
+.ghost.danger:hover { background: rgba(220,53,69,.1); }
+
+/* ── Global action bar ───────────────────────────────────────────────────── */
+.settingsActionBar {
+  position: sticky; bottom: 0;
+  display: flex; gap: 10px; flex-wrap: wrap;
+  background: var(--bg); border-top: 1px solid var(--line);
+  padding: 12px 20px; z-index: 20;
+}
+
+/* ── Restriction stats ───────────────────────────────────────────────────── */
+.restrictionStats {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  font-size: 13px; color: var(--muted); margin-bottom: 12px;
+}
+.restrictionSource { font-size: 11px; }
+.csvActions { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.csvStatusMsg {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 7px 10px;
+  border-radius: 8px; margin-top: 8px;
+}
+
+/* ── Unit toggle ─────────────────────────────────────────────────────────── */
+.unitToggle { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.unitBtn {
+  padding: 7px 14px; font-size: 12px; background: transparent;
+  border: none; color: var(--muted); cursor: pointer;
+}
+.unitBtn.active { background: var(--green); color: #000; font-weight: 600; }
+
+/* ── Settings footer ─────────────────────────────────────────────────────── */
+.settingsFooter {
+  padding: 16px 20px;
+  font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--line);
+  line-height: 1.5; text-align: center;
+}
+
+/* ── Mobile tweaks ───────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .settingsPanelWrap  { padding: 0 0 60px; }
+  .settingsSection    { padding: 12px 14px 0; }
+  .serviceCardHeader  { padding: 11px 12px; }
+  .serviceCardBody    { padding: 4px 12px 12px; }
+  .toggleRow          { flex-direction: row; }
+  .complianceFeatureList { grid-template-columns: 1fr; }
+  .settingsActionBar  { padding: 10px 14px; }
+  .apiKeyInputRow     { flex-wrap: wrap; }
+  .apiKeyInputRow .settingsInput { min-width: 0; }
+}
