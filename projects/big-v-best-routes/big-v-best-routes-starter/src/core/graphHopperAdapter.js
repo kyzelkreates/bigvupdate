@@ -7,7 +7,8 @@
 import { geocodeAddress } from '../services/geocodingClient.js';
 import { decodePolyline } from '../utils/polyline.js';
 
-const GH_BASE = 'https://graphhopper.com/api/1';
+const GH_BASE = "https://graphhopper.com/api/1";
+const ENV_KEY = (typeof import.meta !== "undefined" && import.meta.env?.VITE_GRAPHHOPPER_API_KEY) || "";
 
 /** Map Big V vehicle types to GraphHopper profiles */
 export function mapVehicleToGraphHopperProfile(type) {
@@ -75,6 +76,8 @@ function buildDemoRoute(originCoords, destCoords, vehicleProfile) {
  * Returns a normalised route result object — same shape regardless of provider/demo.
  */
 export async function calculateGraphHopperRoute({ origin, destination, vehicle, apiKey }) {
+  // Prefer build-time env var over runtime settings key
+  const resolvedKey = ENV_KEY || apiKey || "";
   const vehicleProfile = mapVehicleToGraphHopperProfile(vehicle?.type);
 
   // Step 1 — Geocode
@@ -94,13 +97,14 @@ export async function calculateGraphHopperRoute({ origin, destination, vehicle, 
   }
 
   // Step 2 — If no API key, return demo route
-  if (!apiKey || apiKey.trim() === '') {
+  if (!resolvedKey || resolvedKey.trim() === "") {
     return buildDemoRoute(originCoords, destCoords, vehicleProfile);
+  // End demo guard
   }
 
   // Step 3 — Live GraphHopper request
   const params = new URLSearchParams({
-    key: apiKey,
+    key: resolvedKey,
     vehicle: vehicleProfile,
     locale: 'en',
     instructions: 'true',
