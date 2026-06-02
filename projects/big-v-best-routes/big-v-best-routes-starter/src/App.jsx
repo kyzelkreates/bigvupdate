@@ -14,6 +14,7 @@ import {
   pauseSessionRecipe,
   resumeSessionRecipe,
 } from './services/navigationSessionService.js';
+import { runAgentSuite, mergeAgentResultsIntoCompliance } from './agents/agentOrchestrator.js';
 import './styles/app.css';
 
 export default function App() {
@@ -28,15 +29,45 @@ export default function App() {
 
   function runCompliance() {
     setState((draft) => {
-      const vehicle = draft.vehicle.profiles[draft.vehicle.activeVehicleId];
-      const routeResult = draft.trip.lastRouteResult;
-      const result = runComplianceCheck({
+      const vehicle      = draft.vehicle.profiles[draft.vehicle.activeVehicleId];
+      const routeResult  = draft.trip.lastRouteResult;
+
+      // Base compliance check
+      const baseResult = runComplianceCheck({
         vehicle,
-        trip: draft.trip,
+        trip:         draft.trip,
         restrictions: draft.restrictions,
         routeResult,
       });
-      draft.compliance = { ...draft.compliance, ...result };
+
+      // 4P3X specialist agent suite
+      const agentSuite = runAgentSuite({
+        vehicle,
+        trip:         draft.trip,
+        navigation:   draft.navigation,
+        restrictions: draft.restrictions,
+        compliance:   draft.compliance,
+        settings:     draft.settings,
+      });
+
+      // Merge agent results into compliance output
+      const enrichedResult = mergeAgentResultsIntoCompliance(baseResult, agentSuite);
+
+      draft.compliance = { ...draft.compliance, ...enrichedResult };
+      draft.agents = {
+        ranAt:             agentSuite.ranAt,
+        overallLevel:      agentSuite.overallLevel,
+        headline:          agentSuite.headline,
+        combinedScore:     agentSuite.combinedScore,
+        isReadyToNavigate: agentSuite.isReadyToNavigate,
+        vehicleAgent:      agentSuite.vehicleAgent,
+        restrictionAgent:  agentSuite.restrictionAgent,
+        legalAgent:        agentSuite.legalAgent,
+        safetyAgent:       agentSuite.safetyAgent,
+        readinessAgent:    agentSuite.readinessAgent,
+        driverAdvisory:    agentSuite.driverAdvisory,
+        sessionSnapshot:   draft.agents?.sessionSnapshot || null,
+      };
     });
   }
 
@@ -80,15 +111,38 @@ export default function App() {
           }
         }
 
-        // Auto-run compliance after every route calculation
+        // Auto-run compliance + 4P3X agents after every route calculation
         const vehicle = draft.vehicle.profiles[draft.vehicle.activeVehicleId];
-        const complianceResult = runComplianceCheck({
+        const baseComplianceResult = runComplianceCheck({
           vehicle,
-          trip: draft.trip,
+          trip:         draft.trip,
           restrictions: draft.restrictions,
-          routeResult: result,
+          routeResult:  result,
         });
-        draft.compliance = { ...draft.compliance, ...complianceResult };
+        const agentSuiteAuto = runAgentSuite({
+          vehicle,
+          trip:         draft.trip,
+          navigation:   draft.navigation,
+          restrictions: draft.restrictions,
+          compliance:   draft.compliance,
+          settings:     draft.settings,
+        });
+        const enrichedAuto = mergeAgentResultsIntoCompliance(baseComplianceResult, agentSuiteAuto);
+        draft.compliance = { ...draft.compliance, ...enrichedAuto };
+        draft.agents = {
+          ranAt:             agentSuiteAuto.ranAt,
+          overallLevel:      agentSuiteAuto.overallLevel,
+          headline:          agentSuiteAuto.headline,
+          combinedScore:     agentSuiteAuto.combinedScore,
+          isReadyToNavigate: agentSuiteAuto.isReadyToNavigate,
+          vehicleAgent:      agentSuiteAuto.vehicleAgent,
+          restrictionAgent:  agentSuiteAuto.restrictionAgent,
+          legalAgent:        agentSuiteAuto.legalAgent,
+          safetyAgent:       agentSuiteAuto.safetyAgent,
+          readinessAgent:    agentSuiteAuto.readinessAgent,
+          driverAdvisory:    agentSuiteAuto.driverAdvisory,
+          sessionSnapshot:   draft.agents?.sessionSnapshot || null,
+        };
       });
     } catch (err) {
       setState((draft) => {
@@ -235,6 +289,7 @@ export default function App() {
             routeLoading={routeLoading}
             saveCurrentTrip={saveCurrentTrip}
             startNavigation={startNavigation}
+            agents={state.agents}
           />
         )}
         {view === 'navigation' && (

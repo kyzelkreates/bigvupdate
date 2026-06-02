@@ -205,3 +205,114 @@ pre code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
 /* ─── About / settings panel ────────────────────────────────────────────── */
 .aboutPanel { text-align: center; padding: 24px 20px; }
 .aboutPanel code { background: rgba(255,255,255,.08); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4P3X SPECIALIST AGENT SUITE PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.agentPanel { margin-top: 0; }
+.agentPanel h3 { font-size: 14px; font-weight: 600; }
+
+.agentPanelHeader {
+  display: flex; align-items: flex-start; gap: 12;
+  justify-content: space-between; cursor: pointer;
+  padding-bottom: 6px;
+}
+
+.agentPanelBody { padding-top: 12px; }
+
+/* ── Agent messages ──────────────────────────────────────────────────────── */
+.agentMessage {
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+  border-left: 3px solid transparent;
+}
+.agentMessage strong { display: block; font-size: 13px; margin-bottom: 3px; }
+.agentMessage p      { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.45; }
+.agentMessage.critical { background: rgba(220,53,69,.1); border-color: var(--danger); }
+.agentMessage.warning  { background: rgba(255,176,32,.08); border-color: var(--warning); }
+.agentMessage.caution  { background: rgba(58,130,180,.08); border-color: rgba(58,130,180,.6); }
+.agentMessage.info     { background: rgba(255,255,255,.03); border-color: var(--line); }
+.agentMessage.clear    { background: rgba(58,242,124,.07); border-color: var(--green); }
+
+/* ── Score grid ──────────────────────────────────────────────────────────── */
+.agentScoreGrid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  margin: 12px 0;
+}
+.agentScoreItem {
+  background: rgba(255,255,255,.04); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.agentScoreItem span  { font-size: 11px; color: var(--muted); }
+.agentScoreItem strong { font-size: 18px; font-weight: 800; }
+
+/* ── Agent status list ───────────────────────────────────────────────────── */
+.agentStatusList { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.agentStatusRow  { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+
+.agentStatusHeader {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; border: none; border-radius: 0;
+  background: rgba(255,255,255,.02); text-align: left; cursor: pointer;
+  transition: background 0.15s;
+}
+.agentStatusHeader:hover { background: rgba(255,255,255,.05); }
+
+.agentFindingsList {
+  list-style: none; padding: 0 12px 10px; margin: 0;
+  border-top: 1px solid var(--line);
+}
+.agentFinding {
+  padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.agentFinding:last-child { border-bottom: none; }
+.agentFinding strong { font-size: 12px; display: block; margin-bottom: 2px; }
+.agentFinding p      { font-size: 11px; color: var(--muted); margin: 0; line-height: 1.4; }
+.agentFinding.critical strong { color: var(--danger); }
+.agentFinding.warning  strong { color: var(--warning); }
+.agentFinding.info     strong { color: var(--muted); }
+
+/* ── Readiness checklist ─────────────────────────────────────────────────── */
+.readinessChecklist {
+  list-style: none; padding: 0; margin: 8px 0 0;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.readinessItem {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 12px;
+}
+.readinessItem:last-child { border-bottom: none; }
+.readinessItem strong { display: block; font-size: 12px; }
+.readinessItem p      { font-size: 11px; color: var(--muted); margin: 2px 0 0; }
+.readinessItem.passed strong { color: var(--green); }
+.readinessItem.blocked strong { color: var(--danger); }
+.readinessItem.missing strong { color: var(--warning); }
+
+/* ── Action list ─────────────────────────────────────────────────────────── */
+.agentActionList {
+  list-style: none; padding: 0; margin: 6px 0 0;
+}
+.agentActionItem {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 12px; color: var(--muted); padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.agentActionItem:last-child { border-bottom: none; }
+
+/* ── Restriction conflict list ───────────────────────────────────────────── */
+.restrictionConflictList {
+  border: 1px solid rgba(220,53,69,.3); border-radius: 10px;
+  padding: 12px; margin-top: 12px;
+  background: rgba(220,53,69,.06);
+}
+.restrictionConflictItem {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.restrictionConflictItem:last-child { border-bottom: none; }
+
+/* ── badge colours ───────────────────────────────────────────────────────── */
+.badge.warning { color: var(--warning); border-color: rgba(255,176,32,.35); }
+.badge.danger  { color: var(--danger);  border-color: rgba(220,53,69,.35);  }

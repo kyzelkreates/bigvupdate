@@ -17,6 +17,7 @@ import VehicleForm from '../components/VehicleForm.jsx';
 import CompliancePanel from '../components/CompliancePanel.jsx';
 import RouteSummaryPanel from '../components/RouteSummaryPanel.jsx';
 import SafetyDisclaimer from '../components/SafetyDisclaimer.jsx';
+import AgentSuitePanel from '../components/AgentSuitePanel.jsx';
 import { formatDistance, formatDuration } from '../utils/formatters.js';
 
 const ROUTE_MODES = [
@@ -26,7 +27,7 @@ const ROUTE_MODES = [
 ];
 
 export default function PlannerDashboard({
-  state, setState, runCompliance, calculateRoute, routeLoading, saveCurrentTrip, startNavigation,
+  state, setState, runCompliance, calculateRoute, routeLoading, saveCurrentTrip, startNavigation, agents,
 }) {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(state.app.acceptedSafetyDisclaimer);
   const activeVehicle = state.vehicle.profiles[state.vehicle.activeVehicleId];
@@ -211,6 +212,7 @@ export default function PlannerDashboard({
           onRunCheck={runCompliance}
           locked={navLocked}
         />
+        <AgentSuitePanel agents={agents || state.agents} />
       </div>
     </main>
   );

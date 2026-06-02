@@ -130,6 +130,25 @@ export const initialState = {
     useMetric:           true,
     // demoMode removed — use VITE_ENABLE_DEV_ROUTE_FALLBACK=true in .env for dev fallback
   },
+
+  // ── 4P3X Specialist AI Agent results ─────────────────────────────────────
+  // Populated by agentOrchestrator.runAgentSuite() after every compliance run.
+  // All outputs are advisory only.
+  agents: {
+    ranAt:              null,
+    overallLevel:       null,   // 'clear' | 'info' | 'caution' | 'warning' | 'critical'
+    headline:           null,
+    combinedScore:      null,
+    isReadyToNavigate:  false,
+    vehicleAgent:       null,
+    restrictionAgent:   null,
+    legalAgent:         null,
+    safetyAgent:        null,
+    readinessAgent:     null,
+    driverAdvisory:     null,
+    // Snapshotted at navigation start — frozen for the session
+    sessionSnapshot:    null,
+  },
 };
 
 // ─── Persistence helpers ────────────────────────────────────────────────────
