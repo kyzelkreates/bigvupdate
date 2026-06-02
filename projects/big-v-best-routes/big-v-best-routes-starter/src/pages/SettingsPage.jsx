@@ -1,29 +1,30 @@
+/**
+ * SettingsPage.jsx — App configuration and provider setup
+ * Big V's Best Routes™ — Powered by 4P3X Intelligent AI
+ */
+
 import { useState, useRef } from 'react';
 import {
   Eye, EyeOff, CheckCircle, UploadCloud, Trash2,
-  TriangleAlert, Map, Settings2, FlaskConical,
+  TriangleAlert, Map, Settings2, Info, Shield,
 } from 'lucide-react';
 
 export default function SettingsPage({ state, setState }) {
-  const [showKey,    setShowKey]  = useState(false);
-  const [saved,      setSaved]    = useState(false);
-  const [draftKey,   setDraftKey] = useState(state.settings.graphHopperApiKey || '');
-  const [csvStatus,  setCsvStatus] = useState(null); // {type:'success'|'error', msg:string}
+  const [showKey,    setShowKey]    = useState(false);
+  const [saved,      setSaved]      = useState(false);
+  const [draftKey,   setDraftKey]   = useState(state.settings.graphHopperApiKey || '');
+  const [csvStatus,  setCsvStatus]  = useState(null);
   const csvRef = useRef(null);
 
-  const demoOn     = state.settings.demoMode === true;
-  const metricOn   = state.settings.useMetric !== false;
-  const hasKey     = !!state.settings.graphHopperApiKey;
-  const envKeySet  = !!(typeof import.meta !== 'undefined' && import.meta.env?.VITE_GRAPHHOPPER_API_KEY);
+  const metricOn  = state.settings.useMetric !== false;
+  const hasKey    = !!state.settings.graphHopperApiKey;
+  const envKeySet = !!(typeof import.meta !== 'undefined' && import.meta.env?.VITE_GRAPHHOPPER_API_KEY);
+  const devFallbackEnabled = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ENABLE_DEV_ROUTE_FALLBACK) === 'true';
 
   function saveKey() {
     setState((draft) => { draft.settings.graphHopperApiKey = draftKey.trim(); });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  }
-
-  function toggleDemo(val) {
-    setState((draft) => { draft.settings.demoMode = val; });
   }
 
   function toggleMetric(val) {
@@ -42,26 +43,23 @@ export default function SettingsPage({ state, setState }) {
       try {
         const rows = parseCsv(ev.target.result);
         if (!rows.length) throw new Error('CSV appears empty.');
-
         const roadRows   = rows.filter((r) => r.type === 'road' || r.restriction_type === 'road' || (!r.type && !r.restriction_type && r.lat && r.lon));
         const bridgeRows = rows.filter((r) => r.type === 'bridge' || r.restriction_type === 'bridge');
-
         setState((draft) => {
           if (roadRows.length)   draft.restrictions.roadRestrictions   = roadRows;
           if (bridgeRows.length) draft.restrictions.bridgeRestrictions = bridgeRows;
+          draft.restrictions.lastImportedAt = new Date().toISOString();
+          draft.restrictions.importSource   = file.name;
         });
-
         setCsvStatus({
           type: 'success',
-          msg: `Imported ${rows.length} restriction record${rows.length !== 1 ? 's' : ''}` +
-               ` (${roadRows.length} road · ${bridgeRows.length} bridge).`,
+          msg: `Imported ${rows.length} restriction record${rows.length !== 1 ? 's' : ''} (${roadRows.length} road · ${bridgeRows.length} bridge).`,
         });
       } catch (err) {
         setCsvStatus({ type: 'error', msg: `CSV parse error: ${err.message}` });
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be re-selected
     e.target.value = '';
   }
 
@@ -69,6 +67,8 @@ export default function SettingsPage({ state, setState }) {
     setState((draft) => {
       draft.restrictions.roadRestrictions   = [];
       draft.restrictions.bridgeRestrictions = [];
+      draft.restrictions.lastImportedAt     = null;
+      draft.restrictions.importSource       = null;
     });
     setCsvStatus({ type: 'success', msg: 'All restriction data cleared.' });
   }
@@ -79,75 +79,36 @@ export default function SettingsPage({ state, setState }) {
   return (
     <main className="settingsPage">
 
-      {/* ── Demo mode ─────────────────────────────────────────────────── */}
-      <section className="panel settingsSection">
-        <div className="settingsSectionHeader">
-          <div>
-            <p className="eyebrow">Routing mode</p>
-            <h2>Demo mode</h2>
-          </div>
-          <FlaskConical size={22} style={{ color: demoOn ? 'var(--warning)' : 'var(--muted)' }} />
-        </div>
-
-        <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
-          When <strong>Demo mode is on</strong>, all route calculations use a straight-line
-          fallback route regardless of your API key. Useful for testing UI without making live API calls.
-          When <strong>off</strong>, real GraphHopper routing is used if an API key is configured.
-        </p>
-
-        <div className="toggleRow">
-          <div>
-            <strong>{demoOn ? 'Demo mode is ON' : 'Demo mode is OFF'}</strong>
-            <p style={{ color: 'var(--muted)', fontSize: 13, margin: '3px 0 0' }}>
-              {demoOn
-                ? 'Routing will always use a demo/fallback route.'
-                : hasKey || envKeySet
-                  ? 'Live GraphHopper routing active.'
-                  : 'No API key — app will use demo routes automatically.'}
-            </p>
-          </div>
-          <button
-            className={`toggleSwitch ${demoOn ? 'on' : 'off'}`}
-            onClick={() => toggleDemo(!demoOn)}
-            aria-pressed={demoOn}
-            aria-label="Toggle demo mode"
-          >
-            <span className="toggleThumb" />
-            <span className="toggleLabel">{demoOn ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
-
-        {demoOn && (
-          <div className="statusBanner demo" style={{ marginTop: 14 }}>
-            <TriangleAlert size={15} />
-            Demo mode is active — route calculations will always return a fallback route.
-          </div>
-        )}
-      </section>
-
-      {/* ── GraphHopper API key ───────────────────────────────────────── */}
+      {/* ── Routing provider ────────────────────────────────────────── */}
       <section className="panel settingsSection">
         <div className="settingsSectionHeader">
           <div>
             <p className="eyebrow">Routing provider</p>
             <h2>GraphHopper API key</h2>
           </div>
-          <Map size={22} style={{ color: hasKey || envKeySet ? 'var(--green)' : 'var(--muted)' }} />
+          <Map size={22} style={{ color: hasKey || envKeySet ? 'var(--green)' : 'var(--warning)' }} />
         </div>
 
         {envKeySet && (
           <div className="statusBanner success" style={{ marginBottom: 16 }}>
             <CheckCircle size={15} />
-            API key loaded from environment variable — live routing active.
+            API key loaded from <code>VITE_GRAPHHOPPER_API_KEY</code> environment variable — live routing active.
+          </div>
+        )}
+
+        {!envKeySet && !hasKey && (
+          <div className="statusBanner warning" style={{ marginBottom: 16 }}>
+            <TriangleAlert size={15} />
+            No API key configured. Route calculation will show a setup-required state until you add your key below.
           </div>
         )}
 
         <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.55, marginBottom: 16 }}>
-          Without an API key the app uses a safe demo route. Add your key to enable live routing.
-          Get a free key at{' '}
+          A free GraphHopper API key is required for live routing. Get one at{' '}
           <a href="https://graphhopper.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--green)' }}>
             graphhopper.com
-          </a>.
+          </a>
+          . Your key is stored in your browser only — never sent to any Big V server.
         </p>
 
         <label className="field">
@@ -159,46 +120,41 @@ export default function SettingsPage({ state, setState }) {
               onChange={(e) => setDraftKey(e.target.value)}
               placeholder="Enter your GraphHopper API key…"
               style={{ paddingRight: 44 }}
-              disabled={demoOn}
             />
             <button
               className="ghost"
               onClick={() => setShowKey((v) => !v)}
-              style={{
-                position: 'absolute', right: 6, top: '50%',
-                transform: 'translateY(-50%)', padding: '4px 8px',
-                border: 'none', background: 'transparent',
-              }}
+              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', padding: '4px 8px', border: 'none', background: 'transparent' }}
               title={showKey ? 'Hide key' : 'Show key'}
             >
               {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          <small>Stored in localStorage only — never sent to any Big V server.</small>
+          <small>Stored in <code>localStorage</code> only. Never shared. Overridden by <code>VITE_GRAPHHOPPER_API_KEY</code> if set.</small>
         </label>
 
-        <button
-          className="primary"
-          onClick={saveKey}
-          disabled={demoOn}
-          style={{ marginTop: 8 }}
-        >
+        <button className="primary" onClick={saveKey} style={{ marginTop: 8 }}>
           {saved ? <><CheckCircle size={16} /> Saved</> : 'Save API key'}
         </button>
 
-        {!demoOn && (hasKey || envKeySet) && (
+        {(hasKey || envKeySet) && (
           <p style={{ color: 'var(--green)', fontSize: 13, marginTop: 12 }}>
-            ✓ API key configured — live routing active.
+            ✓ API key configured — live GraphHopper routing active.
           </p>
         )}
-        {!demoOn && !hasKey && !envKeySet && (
-          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 12 }}>
-            No key configured — demo routing will be used automatically.
-          </p>
+
+        {devFallbackEnabled && (
+          <div className="statusBanner demo" style={{ marginTop: 14 }}>
+            <Info size={14} />
+            <span>
+              <strong>Developer fallback mode active</strong> — <code>VITE_ENABLE_DEV_ROUTE_FALLBACK=true</code>.
+              A straight-line dev route will be used when no API key is set. Remove this flag for production.
+            </span>
+          </div>
         )}
       </section>
 
-      {/* ── Display preferences ──────────────────────────────────────── */}
+      {/* ── Display preferences ───────────────────────────────────────── */}
       <section className="panel settingsSection">
         <div className="settingsSectionHeader">
           <div>
@@ -227,22 +183,22 @@ export default function SettingsPage({ state, setState }) {
         </div>
       </section>
 
-      {/* ── Restriction CSV import ────────────────────────────────────── */}
+      {/* ── Restriction CSV import ─────────────────────────────────────── */}
       <section className="panel settingsSection">
         <div className="settingsSectionHeader">
           <div>
-            <p className="eyebrow">Restriction data</p>
+            <p className="eyebrow">Compliance AI — restriction data</p>
             <h2>Import restrictions CSV</h2>
           </div>
           <UploadCloud size={22} style={{ color: roadCount + bridgeCount > 0 ? 'var(--green)' : 'var(--muted)' }} />
         </div>
 
         <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.55, marginBottom: 16 }}>
-          Import a CSV file of local bridge heights, weight limits, and road restrictions to
-          improve Compliance AI accuracy. Data is stored in your browser only.
+          Import a CSV file of local bridge heights, weight limits, and road restrictions.
+          This data improves Compliance AI advisory accuracy for your vehicle type.
+          Stored in your browser only.
         </p>
 
-        {/* Current data summary */}
         <div className="csvSummaryGrid">
           <div className="csvSummaryItem">
             <span>Road restrictions</span>
@@ -254,83 +210,76 @@ export default function SettingsPage({ state, setState }) {
           </div>
         </div>
 
-        {/* CSV format guide */}
-        <details style={{ marginBottom: 14 }}>
-          <summary style={{ cursor: 'pointer', color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>
-            Expected CSV format (click to expand)
-          </summary>
-          <pre style={{
-            background: 'rgba(0,0,0,.3)', border: '1px solid var(--line)',
-            borderRadius: 12, padding: 12, fontSize: 12,
-            color: 'var(--green)', overflowX: 'auto', marginTop: 8,
-          }}>
-{`lat,lon,type,title,detail,value
-51.4545,-2.5879,bridge,Low bridge,Maximum clearance 3.8m,3.8
-51.4816,-3.1791,road,Weight limit,Max gross weight 7.5t,7.5
-51.5074,-0.1278,road,Width restriction,Max width 2.0m,2.0`}
-          </pre>
-          <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 6 }}>
-            Required columns: <code>lat</code>, <code>lon</code>, <code>type</code> (bridge or road),
-            <code>title</code>, <code>detail</code>.
-            The <code>value</code> column is optional (used for numeric limit checks).
-          </p>
-        </details>
+        {roadCount + bridgeCount === 0 && (
+          <div className="statusBanner demo" style={{ marginBottom: 14 }}>
+            <TriangleAlert size={14} />
+            No restriction dataset loaded. Compliance AI confidence is reduced without local restriction data.
+          </div>
+        )}
 
-        {/* Upload button */}
-        <input
-          ref={csvRef}
-          type="file"
-          accept=".csv"
-          style={{ display: 'none' }}
-          onChange={handleCsvUpload}
-        />
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {state.restrictions?.importSource && (
+          <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
+            Last import: <strong>{state.restrictions.importSource}</strong>
+            {state.restrictions.lastImportedAt && (
+              <> · {new Date(state.restrictions.lastImportedAt).toLocaleString()}</>
+            )}
+          </p>
+        )}
+
+        <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 10 }}>
+          CSV format guide:{' '}
+          <code>lat, lon, type (road|bridge), maxheight, maxweight, maxwidth, maxlength, description</code>
+        </p>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+          <input ref={csvRef} type="file" accept=".csv" onChange={handleCsvUpload} style={{ display: 'none' }} />
           <button className="primary" onClick={() => csvRef.current?.click()}>
-            <UploadCloud size={16} /> Upload restriction CSV
+            <UploadCloud size={16} /> Import CSV
           </button>
-          {(roadCount + bridgeCount) > 0 && (
-            <button className="dangerButton" onClick={clearRestrictions}>
-              <Trash2 size={15} /> Clear all restriction data
+          {(roadCount + bridgeCount > 0) && (
+            <button className="ghost" onClick={clearRestrictions} style={{ color: 'var(--danger)' }}>
+              <Trash2 size={16} /> Clear restriction data
             </button>
           )}
         </div>
 
-        {/* Upload status */}
         {csvStatus && (
-          <div className={`statusBanner ${csvStatus.type === 'error' ? 'error' : 'success'}`} style={{ marginTop: 12 }}>
-            {csvStatus.type === 'error' ? <TriangleAlert size={15} /> : <CheckCircle size={15} />}
+          <div className={`statusBanner ${csvStatus.type === 'success' ? 'success' : 'error'}`} style={{ marginTop: 14 }}>
+            {csvStatus.type === 'success' ? <CheckCircle size={14} /> : <TriangleAlert size={14} />}
             {csvStatus.msg}
           </div>
         )}
-
-        <p className="disclaimer" style={{ marginTop: 14 }}>
-          Imported restriction data is advisory only. Always verify road signs and local notices.
-          This data does not replace official restriction surveys or professional routing compliance.
-        </p>
       </section>
 
-      {/* ── Env variable reference ────────────────────────────────────── */}
+      {/* ── Environment configuration guide ──────────────────────────── */}
       <section className="panel settingsSection">
         <div className="settingsSectionHeader">
           <div>
-            <p className="eyebrow">Production deployment</p>
-            <h2>Environment variable</h2>
+            <p className="eyebrow">Developer setup</p>
+            <h2>Environment variables</h2>
           </div>
+          <Info size={22} style={{ color: 'var(--muted)' }} />
         </div>
-        <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.55 }}>
-          For production deployments, set your API key via environment variable:
+        <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--muted)', background: 'rgba(0,0,0,.2)', borderRadius: 12, padding: 16, lineHeight: 2 }}>
+          <div><span style={{ color: 'var(--green)' }}>VITE_GRAPHHOPPER_API_KEY</span>=your_graphhopper_key_here</div>
+          <div><span style={{ color: 'var(--green)' }}>VITE_MAP_STYLE_URL</span>=your_maplibre_style_url_here</div>
+          <div><span style={{ color: 'var(--muted)' }}>VITE_ENABLE_DEV_ROUTE_FALLBACK</span>=false</div>
+        </div>
+        <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
+          Copy <code>.env.example</code> to <code>.env</code> and fill in your values. Never commit <code>.env</code> to version control.
         </p>
-        <pre style={{
-          background: 'rgba(0,0,0,.3)', border: '1px solid var(--line)',
-          borderRadius: 12, padding: 14, fontSize: 13,
-          color: 'var(--green)', overflowX: 'auto',
-        }}>
-{`# .env
-VITE_GRAPHHOPPER_API_KEY=your_graphhopper_key_here`}
-        </pre>
-        <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 8 }}>
-          The app checks <code>import.meta.env.VITE_GRAPHHOPPER_API_KEY</code> first,
-          then falls back to the value saved in Settings above.
+      </section>
+
+      {/* ── Product identity / about ──────────────────────────────────── */}
+      <section className="panel settingsSection aboutPanel">
+        <Shield size={22} style={{ color: 'var(--green)', marginBottom: 10 }} />
+        <strong style={{ fontSize: 16 }}>Big V's Best Routes™</strong>
+        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Powered by 4P3X Intelligent AI</p>
+        <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>Created by Kyzel Kreates · Part of the 4P3X Verse</p>
+        <p className="disclaimer" style={{ marginTop: 14 }}>
+          Big V's Best Routes™ provides advisory route guidance only. It does not guarantee legal route suitability.
+          Road signs, local restrictions, police instructions, and driver judgement override app guidance.
+          The driver remains responsible for route legality and vehicle safety.
         </p>
       </section>
 
@@ -339,19 +288,14 @@ VITE_GRAPHHOPPER_API_KEY=your_graphhopper_key_here`}
 }
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
-
 function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
+  const lines = text.trim().split('\n').filter(Boolean);
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/\s+/g, '_'));
   return lines.slice(1).map((line) => {
-    const vals = line.split(',');
+    const values = line.split(',').map((v) => v.trim());
     const row = {};
-    headers.forEach((h, i) => { row[h] = (vals[i] || '').trim(); });
-    // Coerce lat/lon to numbers
-    if (row.lat) row.lat = parseFloat(row.lat);
-    if (row.lon) row.lon = parseFloat(row.lon);
-    if (row.value) row.value = parseFloat(row.value);
+    headers.forEach((h, i) => { row[h] = values[i] || ''; });
     return row;
-  }).filter((r) => r.lat && r.lon && !isNaN(r.lat) && !isNaN(r.lon));
+  }).filter((r) => r.lat && r.lon);
 }

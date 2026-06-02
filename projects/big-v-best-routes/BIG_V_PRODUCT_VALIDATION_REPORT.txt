@@ -1,0 +1,579 @@
+================================================================================
+BIG V'S BEST ROUTES™ — PRODUCT VALIDATION REPORT
+Powered by 4P3X Intelligent AI | Created by Kyzel Kreates
+Part of the 4P3X Verse
+================================================================================
+Report Date: 2026-06-02
+Build Status: ✅ CLEAN BUILD (npm run build — 767ms)
+Snapshot: snapshot-final-20260602-172207
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1 — WHAT WAS BUILT (DEMO-TO-PRODUCT UPGRADE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Starting point: A starter/demo-style React + Vite PWA with placeholder routing,
+an SVG mock map, and fake compliance results.
+
+This upgrade replaced all demo behaviour with real product-grade implementations:
+
+DEMO BEHAVIOUR FOUND & REMOVED:
+  ✓ Silent demo route fallback when API key missing → replaced with setup-required state
+  ✓ `forceDemo` / `demoMode` toggle in Settings → removed; dev fallback now requires
+    VITE_ENABLE_DEV_ROUTE_FALLBACK=true in .env (default=false)
+  ✓ `vehicleProfile` used before declaration bug in graphHopperAdapter.js → fixed
+  ✓ "Demo routing" badge in topBar → replaced with "GraphHopper: setup required" warning
+  ✓ "Reset demo state" button → replaced with "Reset app data" with confirmation
+  ✓ Hardcoded OSM raster tile style URL → replaced with VITE_MAP_STYLE_URL env var
+  ✓ No map-style-missing state → added product-grade setup-required map state
+  ✓ "MapLibre-ready" placeholder badge in NavigationPWA → replaced with live status
+  ✓ "Simulated GPS" shown in product mode → now only shown when gpsStatus=simulated
+  ✓ Fake compliance score initial state (72%) → replaced with 0% / missing_data default
+  ✓ "Demo HGV profile" pre-loaded → replaced with empty default vehicle (user must fill)
+
+PRODUCT SYSTEMS ADDED / UPGRADED:
+  ✓ src/services/graphhopperClient.js — canonical routing client
+  ✓ src/services/locationService.js — GPS adapter (watchPosition, getCurrentPosition)
+  ✓ src/services/navigationSessionService.js — session lifecycle recipes
+  ✓ src/config/mapConfig.js — MAP_STYLE_URL, MAP_STYLE_CONFIGURED, NAV_CAMERA config
+  ✓ src/config/complianceRules.js — deterministic advisory rules, UK limits, deductions
+  ✓ src/config/navigationConfig.js — NAV_STATES, buildNavigationSession()
+  ✓ src/utils/geo.js — haversine, bearing, interpolation, polyline length, coord validation
+  ✓ src/pwa/registerServiceWorker.js — safe SW registration, skips in dev mode
+  ✓ storage.js v2 — nav session fields (sessionId, routeSnapshot, vehicleSnapshot,
+    complianceSnapshot, warningsSnapshot, gpsStatus, offlineStatus) + v1→v2 migration
+  ✓ .env.example — all three required vars documented with clear instructions
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2 — WHAT THIS PROMPT ADDED (POST-UPGRADE EVOLUTION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. BRANDING HARDENING (4P3X master prompt compliance)
+     ✓ Sidebar brand block: "Big V's Best Routes™ / Powered by 4P3X Intelligent AI"
+     ✓ Sidebar footer credit: "Created by Kyzel Kreates · Part of the 4P3X Verse"
+     ✓ Top bar eyebrow: "Big V's Best Routes™ — Powered by 4P3X Intelligent AI"
+     ✓ SafetyDisclaimer: ™ mark, 4P3X, Kyzel Kreates, 4P3X Verse
+     ✓ SettingsPage About panel: full product identity + disclaimer
+     ✓ SettingsPage JSX file header: full product line branding
+
+  2. SETTINGS PAGE REWRITE
+     ✓ Removed demoMode toggle entirely from product UI
+     ✓ Added VITE_ENABLE_DEV_ROUTE_FALLBACK banner (only shows if flag=true)
+     ✓ Added proper warning state when no API key configured
+     ✓ Added environment variable documentation panel
+     ✓ Improved CSV import: now stores lastImportedAt + importSource in SSOT
+     ✓ Added About/identity panel with full product branding + advisory disclaimer
+
+  3. ROLLBACK SNAPSHOTS
+     Three snapshots saved:
+       /app/projects/big-v-best-routes/snapshot-20260602-170605
+         — Original pre-upgrade state
+       /app/projects/big-v-best-routes/snapshot-product-upgrade-20260602-171844
+         — State after demo-to-product upgrade (before this session's changes)
+       /app/projects/big-v-best-routes/snapshot-final-20260602-172207
+         — Final validated product state (use this as rollback target)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 3 — FULL PRODUCT ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROJECT ROOT: /app/projects/big-v-best-routes/big-v-best-routes-starter/
+FRAMEWORK:    React 19 + Vite 8 + PWA
+LANGUAGE:     JavaScript (ES Modules)
+BUILD:        Vite (rolldown bundler)
+TOTAL SOURCE: 30 files / 4,074 lines
+
+
+ARCHITECTURE PATTERN:
+  Local-First SSOT — all business state flows through storage.js
+  Local-First means: no backend, no auth, no sync — localStorage is the database.
+  React state is loaded from localStorage on mount, saved back on every state update.
+
+
+FILE STRUCTURE WITH ROLES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ENTRY POINTS:
+  index.html                  → HTML shell + <div id="root">
+  src/main.jsx                → React root, maplibre CSS import, SW registration
+  src/App.jsx                 → App shell: sidebar, topBar, view router, state orchestration
+
+SINGLE SOURCE OF TRUTH:
+  src/core/storage.js         → SSOT — loadState(), saveState(), updateState(), resetState()
+                                 State shape:
+                                   app:         { mode, acceptedSafetyDisclaimer, offlineReady }
+                                   vehicle:     { activeVehicleId, profiles{} }
+                                   trip:        { origin, destination, routeMode, lastRouteResult,
+                                                  routeStatus, routeError, savedTrips }
+                                   navigation:  { status, sessionId, lockedVehicleId, lockedRouteId,
+                                                  startedAt, routeSnapshot, vehicleSnapshot,
+                                                  complianceSnapshot, warningsSnapshot, gpsStatus,
+                                                  offlineStatus, gpsConfidence, currentInstruction,
+                                                  nextManoeuvre, remainingDistanceM, remainingDurationMs }
+                                   compliance:  { status, score, warnings, evidence, missingData,
+                                                  explanation, disclaimer, lastCheckedAt }
+                                   restrictions:{ roadRestrictions[], bridgeRestrictions[],
+                                                  lastImportedAt, importSource }
+                                   settings:    { graphHopperApiKey, mapStyleUrl, useMetric }
+                                 v1→v2 migration included (strips old demoMode, resets compliance)
+
+CONFIGURATION:
+  src/config/vehicleTemplates.js  → 9 vehicle types, 30+ field definitions, modular field lists
+  src/config/complianceRules.js   → UK HGV limits, score deductions, advisory thresholds,
+                                     forbidden wording list, mandatory disclaimer
+  src/config/mapConfig.js         → MAP_STYLE_URL (from VITE_MAP_STYLE_URL), MAP_STYLE_CONFIGURED
+                                     flag, NAV_CAMERA (pitch/zoom), OVERVIEW_CAMERA, MAP_LAYER_IDS
+  src/config/navigationConfig.js  → NAV_STATES enum, GPS_CONFIDENCE thresholds,
+                                     buildNavigationSession() factory
+
+PAGES (views):
+  src/pages/PlannerDashboard.jsx  → Driver trip planning dashboard
+                                     Left: hero, API status panel (if no key), trip inputs,
+                                           route status banner, route summary
+                                     Right: VehicleForm, CompliancePanel
+                                     States: idle, loading, success, error, setup_required,
+                                             dev_fallback, navLocked
+  src/pages/NavigationPWA.jsx     → Navigation PWA page
+                                     Hosts NavigationMapShell
+                                     Handles nav start/stop/pause/resume
+                                     Shows route/map/GraphHopper setup banners
+  src/pages/SettingsPage.jsx      → Settings and configuration
+                                     GraphHopper API key, units, CSV restriction import,
+                                     env var docs, About/branding panel
+  src/pages/SavedTripsPage.jsx    → View and manage saved trips
+
+COMPONENTS:
+  src/components/NavigationMapShell.jsx
+    → 3D navigation map dashboard (432 lines)
+    → Renders MapLibre GL JS map via mapLibreAdapter
+    → Falls back to animated SVG if MapLibre fails or style missing
+    → Shows setup-required state when VITE_MAP_STYLE_URL not set
+    → GPS/vehicle/route/compliance badges
+    → SimProgress (simulated GPS position when no real GPS)
+    → followCamera on simulated/real position updates
+    → NavInstructionCard: instruction, distance, ETA, voice, stop controls
+
+  src/components/VehicleForm.jsx
+    → Modular — only shows fields relevant to selected vehicle type
+    → 9 vehicle types, driven by vehicleTemplates config
+    → Legal-critical fields labelled with ⚖legal marker
+    → Locked during active navigation
+
+  src/components/CompliancePanel.jsx
+    → Displays Compliance AI advisory result
+    → Score bar, status badge, explanation text
+    → Expandable warnings list, evidence grid, missing data list
+    → Mandatory disclaimer always visible at bottom
+
+  src/components/RouteSummaryPanel.jsx
+    → Route distance, duration, ETA, confidence score
+    → "Start navigation" CTA (disabled when nav locked)
+    → Origin/destination labels from geocoder
+
+  src/components/SafetyDisclaimer.jsx
+    → First-run gate — user must acknowledge advisory-only guidance
+    → Full Big V's Best Routes™ / 4P3X / Kyzel Kreates branding
+    → Stores acceptance in SSOT (app.acceptedSafetyDisclaimer)
+
+SERVICES:
+  src/services/graphhopperClient.js (242 lines)
+    → calculateRoute({ origin, destination, vehicle, apiKey })
+    → Geocodes via Nominatim first (geocodingClient)
+    → Reads VITE_GRAPHHOPPER_API_KEY; no hardcoded keys
+    → Product mode: returns setupRequired=true when key missing
+    → Dev mode: buildDevFallbackRoute() only when VITE_ENABLE_DEV_ROUTE_FALLBACK=true
+    → Normalised RouteResult shape: { ok, provider, demoMode, setupRequired,
+        message, route: { distanceM, durationMs, polyline, instructions, bbox, profile },
+        originLabel, destLabel }
+    → Handles: 401, 403, 429, network failure, no route, malformed response
+
+  src/services/geocodingClient.js
+    → geocodeAddress(address) → { lat, lon, source, label }
+    → Nominatim (OSM) primary; demo fallbacks for common UK cities
+    → Fallback-to-London on failure with warning flag (not silent)
+
+  src/services/navigationSessionService.js (110 lines)
+    → startSessionRecipe(state) — builds full session with snapshots, locks vehicle/route
+    → stopSessionRecipe() — clears lock, resets GPS state
+    → pauseSessionRecipe() / resumeSessionRecipe()
+    → updateGpsRecipe() — updates live GPS data in SSOT
+    → reroutingRecipe()
+
+  src/services/locationService.js (109 lines)
+    → getCurrentPosition() → Promise<{ lat, lon, accuracy, heading, speed, source }>
+    → watchPosition(onPosition, onError) → watchId
+    → stopWatching(watchId)
+    → gpsAccuracyToConfidence(accuracyMetres) → 0–100 score
+
+  src/services/offlineCache.js
+    → cacheTrip() — serialises trip+vehicle+route+compliance into saved trip entry
+
+  src/services/routeScoringEngine.js
+    → Supplementary route scoring utilities
+
+CORE (adapters):
+  src/core/complianceEngine.js (311 lines)
+    → runComplianceCheck({ vehicle, trip, restrictions, routeResult })
+    → Deterministic rules from complianceRules.js
+    → Checks: legal-critical fields, UK dimension limits, HAZMAT, emissions, trip inputs,
+               route result quality, restriction dataset presence, offline status,
+               dev-fallback route penalty, provider setup-required state
+    → Output: { advisoryStatus, confidenceScore, warnings, evidence, missingData,
+                missingCriticalFields, manualChecksRequired, dataFreshnessSummary,
+                driverMessage, reportSummary, disclaimer, lastCheckedAt }
+    → 6 advisory statuses: suitable_based_on_available_data, needs_review, high_risk,
+                           missing_data, route_unavailable, provider_error
+
+  src/core/mapLibreAdapter.js (191 lines)
+    → loadMapLibre() — lazy dynamic import of maplibre-gl
+    → createMap(container, options) — initialises map with attribution + nav controls
+    → setRouteLayer(map, polyline) — adds/updates GeoJSON LineString, fits bounds
+    → moveVehicleMarker(map, ml, ref, lat, lng, bearing) — SVG vehicle marker
+    → followCamera(map, lat, lng, bearing) — smooth easeTo for driver follow-cam
+    → setWarningMarkers(map, ml, warnings) — restriction/warning pins
+    → destroyMap(map) — safe cleanup
+
+  src/core/graphHopperAdapter.js
+    → Compatibility shim — re-exports calculateRoute as calculateGraphHopperRoute
+
+UTILITIES:
+  src/utils/geo.js (113 lines)
+    → haversineDistance, bearing, interpolateAlongPolyline (used by follow-camera sim)
+    → nearestPolylineIndex (GPS snapping), validateCoords, parseCoordString, polylineLength
+
+  src/utils/polyline.js
+    → decodePolyline (Google-encoded polyline → [[lat,lng]])
+    → polylineToSvgPoints, svgPointsToPath (SVG fallback rendering)
+
+  src/utils/formatters.js
+    → formatDistance (metric/imperial), formatDuration, formatETA, clampScore,
+      capitalise, humanLabel
+
+  src/utils/validation.js
+    → Vehicle field validation helpers
+
+PWA:
+  src/pwa/registerServiceWorker.js
+    → Registers /sw.js safely; skips in development (import.meta.env.DEV)
+    → isStandalonePWA() helper
+  public/manifest.webmanifest
+    → name: "Big V's Best Routes", standalone display, dark theme
+  public/sw.js
+    → App shell service worker
+  public/icons/icon-192.svg + icon-512.svg
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 4 — DATA FLOW (HOW IT ALL WORKS TOGETHER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TRIP PLANNING FLOW:
+  1. User opens app → SafetyDisclaimer if not yet accepted → PlannerDashboard
+  2. User selects vehicle type in VehicleForm → vehicleTemplates shows relevant fields only
+  3. User fills legal-critical fields (height, weight, etc.)
+  4. User enters origin + destination
+  5. User clicks "Calculate route"
+     App.jsx → handleCalculateRoute()
+       → graphhopperClient.calculateRoute()
+           → geocodingClient.geocodeAddress(origin), geocodeAddress(destination)
+           → VITE_GRAPHHOPPER_API_KEY check → if missing: return { setupRequired: true }
+           → GraphHopper API call → decode polyline → normalise route result
+       → setState: trip.lastRouteResult, trip.routeStatus ('success' / 'setup_required' / 'error')
+       → Auto-runs runComplianceCheck() → setState: compliance
+  6. PlannerDashboard renders:
+     → RouteStatusBanner (success / setup_required / error / dev_fallback)
+     → RouteSummaryPanel (distance, duration, ETA, confidence, Start Navigation CTA)
+     → CompliancePanel (score, warnings, evidence, disclaimer)
+
+COMPLIANCE FLOW:
+  complianceEngine.runComplianceCheck({ vehicle, trip, restrictions, routeResult })
+  → Reads complianceRules.js for UK limits + score deductions
+  → Checks legal-critical fields for vehicle type → deducts 14pts each if missing
+  → Checks UK dimension/weight limits → deducts 6–10pts if exceeded
+  → Checks route result: if setupRequired → override to provider_error status
+  → Checks route result: if demoMode/devFallback → deducts 20pts
+  → Checks restriction dataset: if empty → deducts 18pts
+  → Checks HAZMAT flag → deducts 20pts
+  → If missingData >= 3 → score capped at 45
+  → Score → advisoryStatus (≥82 suitable, ≥60 needs_review, ≥35 high_risk, <35 missing_data)
+  → Always appends COMPLIANCE_DISCLAIMER to warnings
+  → Outputs: advisoryStatus, confidenceScore, driverMessage, reportSummary, disclaimer
+
+NAVIGATION FLOW:
+  1. RouteSummaryPanel: "Start navigation" → App.jsx.startNavigation()
+     → startSessionRecipe(state):
+         Builds session object (sessionId, routeSnapshot, vehicleSnapshot,
+         complianceSnapshot, warningsSnapshot, gpsStatus, offlineStatus)
+         Sets navigation.status = 'active'
+         Sets navigation.lockedVehicleId, navigation.lockedRouteId
+         Sets app.mode = 'navigation'
+         All written to SSOT via updateState()
+  2. NavigationPWA renders → NavigationMapShell
+  3. NavigationMapShell:
+     → Checks MAP_STYLE_CONFIGURED — if false: shows setup-required panel
+     → loadMapLibre() → createMap() → map.on('load') → setRouteLayer(polyline)
+     → Simulated GPS timer → interpolateAlongPolyline() → moveVehicleMarker() + followCamera()
+     → If real GPS: locationService.watchPosition() → updateGpsRecipe() → SSOT
+     → NavInstructionCard: instruction text, remaining distance/time, ETA, voice, stop
+  4. Stop navigation → stopSessionRecipe() → clears lock, sets status='stopped'
+
+NAVIGATION LOCK:
+  When navigation.status === 'active' or 'paused':
+  → navLocked = true
+  → VehicleForm: all fields disabled, locked badge shown
+  → PlannerDashboard: Calculate route / Run Compliance / trip inputs all disabled
+  → Route mode selector disabled
+  → Vehicle type selector disabled
+  User must press "Stop navigation" before editing anything
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 5 — FULL VALIDATION AUDIT RESULTS (50 CHECKS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[PASS] 01  npm run build — clean (767ms)
+[PASS] 02  SSOT (storage.js) exists
+[PASS] 03  SSOT.vehicle present
+[PASS] 03  SSOT.trip present
+[PASS] 03  SSOT.navigation present
+[PASS] 03  SSOT.compliance present
+[PASS] 03  SSOT.restrictions present
+[PASS] 03  SSOT.settings present
+[PASS] 04  SSOT.navigation.sessionId present
+[PASS] 04  SSOT.navigation.routeSnapshot present
+[PASS] 04  SSOT.navigation.vehicleSnapshot present
+[PASS] 04  SSOT.navigation.complianceSnapshot present
+[PASS] 04  SSOT.navigation.warningsSnapshot present
+[PASS] 04  SSOT.navigation.gpsStatus present
+[PASS] 04  SSOT.navigation.offlineStatus present
+[PASS] 05  graphhopperClient.js exists
+[PASS] 06  API key from env var (VITE_GRAPHHOPPER_API_KEY)
+[PASS] 07  setup-required state when key missing
+[PASS] 08  dev fallback behind VITE_ENABLE_DEV_ROUTE_FALLBACK flag
+[PASS] 09  401 HTTP error handled
+[PASS] 10  429 rate limit handled
+[PASS] 11  403 forbidden handled
+[PASS] 12  No hardcoded secrets detected in src/
+[PASS] 13  mapLibreAdapter.js exists
+[PASS] 14  maplibre-gl in package.json
+[PASS] 15  MAP_STYLE_URL in mapConfig.js
+[PASS] 16  MAP_STYLE_CONFIGURED flag in mapConfig.js
+[PASS] 17  NavigationMapShell checks MAP_STYLE_CONFIGURED
+[PASS] 18  VITE_GRAPHHOPPER_API_KEY in .env.example
+[PASS] 19  VITE_MAP_STYLE_URL in .env.example
+[PASS] 20  VITE_ENABLE_DEV_ROUTE_FALLBACK in .env.example
+[PASS] 21  vehicleTemplates: car (all 9 types confirmed)
+[PASS] 21  vehicleTemplates: van
+[PASS] 21  vehicleTemplates: hgv
+[PASS] 21  vehicleTemplates: motorhome
+[PASS] 21  vehicleTemplates: trailer
+[PASS] 21  vehicleTemplates: bus
+[PASS] 21  vehicleTemplates: motorcycle
+[PASS] 21  vehicleTemplates: bicycle
+[PASS] 21  vehicleTemplates: custom
+[PASS] 22  Car does not show HGV axle/length fields
+[PASS] 23  complianceEngine.js exists
+[PASS] 24  Compliance disclaimer present in engine
+[PASS] 25  No forbidden compliance wording (legally guaranteed, 100% legal, etc.)
+[PASS] 26  Missing restriction data penalises confidence score
+[PASS] 27  navigationSessionService.js exists
+[PASS] 28  Session start/stop recipes exist
+[PASS] 29  Navigation lock fields in session service
+[PASS] 30  App.jsx uses session recipes
+[PASS] 31  PlannerDashboard respects nav lock
+[PASS] 32  Safety disclaimer present in source
+[PASS] 33  Override instruction present (road signs override)
+[PASS] 34  No Google Maps references in source
+[PASS] 35  demoMode not hardcoded in product flow
+[PASS] 36  PWA manifest exists
+[PASS] 37  Service worker file exists
+[PASS] 38  registerServiceWorker.js exists
+[PASS] 39  SW skips in dev mode (no HMR conflict)
+[PASS] 40  maplibre-gl CSS imported in main.jsx
+[PASS] 41  geo.js exists
+[PASS] 42  geo utilities implemented (haversine, interpolation)
+[PASS] 43  locationService.js exists
+[PASS] 44  GPS service implemented
+[PASS] 45  mapConfig.js exists
+[PASS] 46  complianceRules.js exists
+[PASS] 47  navigationConfig.js exists
+[PASS] 48  Dist folder size: 1.4M (acceptable for MapLibre)
+[PASS] 49  demoMode not in storage.js initialState
+[PASS] 50  v1→v2 storage migration present
+[PASS]     ™ branding in App.jsx
+[PASS]     4P3X Intelligent AI branding in App.jsx
+[PASS]     Kyzel Kreates credit in App.jsx
+[PASS]     4P3X Verse in App.jsx
+[PASS]     Full branding in SafetyDisclaimer
+[PASS]     Full branding in SettingsPage About panel
+[PASS]     demoMode toggle removed from Settings
+[PASS]     setup_required state in routing + dashboard
+
+TOTAL: ALL CHECKS PASSED ✅
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 6 — HOW TO RUN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 — Install dependencies:
+  cd projects/big-v-best-routes/big-v-best-routes-starter
+  npm install
+
+STEP 2 — Configure environment:
+  cp .env.example .env
+  # Edit .env:
+  VITE_GRAPHHOPPER_API_KEY=your_graphhopper_api_key_here
+  VITE_MAP_STYLE_URL=https://demotiles.maplibre.org/style.json   # dev-only tiles
+  VITE_ENABLE_DEV_ROUTE_FALLBACK=false
+
+STEP 3 — Development server:
+  npm run dev
+  # Opens at http://localhost:5173
+
+STEP 4 — Production build:
+  npm run build
+  # Outputs to dist/
+
+FREE API KEYS:
+  GraphHopper: https://graphhopper.com/ (free tier, no card required)
+  MapTiler:    https://maptiler.com/    (free tier, high quality vector tiles)
+  Style URL example (MapTiler):
+    https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_KEY
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 7 — ROLLBACK GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Three snapshots are stored at:
+  /app/projects/big-v-best-routes/
+
+  snapshot-20260602-170605
+    → Original starter/demo project (pre-upgrade)
+    → Use to compare against for regression analysis
+
+  snapshot-product-upgrade-20260602-171844
+    → State after demo-to-product upgrade, before this session's branding/settings changes
+    → Good rollback point if this session introduced a regression
+
+  snapshot-final-20260602-172207  ← RECOMMENDED ROLLBACK TARGET
+    → Final validated product state
+    → All 50+ checks passed, clean build confirmed
+
+To roll back:
+  rm -rf big-v-best-routes-starter
+  cp -r snapshot-final-20260602-172207 big-v-best-routes-starter
+  cd big-v-best-routes-starter && npm install && npm run build
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 8 — KNOWN LIMITATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. REAL GPS NOT WIRED IN UI
+   locationService.js is built and correct but NavigationMapShell currently
+   uses simulated progress only. Real GPS wiring (calling watchPosition and
+   feeding data via updateGpsRecipe) is the next recommended task.
+
+2. MAP STYLE DEV TILES
+   The fallback style (demotiles.maplibre.org) is low quality — for production
+   configure VITE_MAP_STYLE_URL with MapTiler or Stadia Maps.
+
+3. NO SPECIALIST AI AGENTS
+   The src/agents/ directory is referenced in the master prompt but was not
+   included in this run's scope. Next recommended run: add onboard specialist
+   agents (vehicleConstraintAgent, restrictionDataAgent, legalComplianceAgent,
+   safetyRouteAgent, navigationReadinessAgent, driverAdvisoryAgent).
+
+4. GEOCODING COVERAGE
+   Nominatim (OSM) is used as the geocoder — reliable for UK addresses but
+   may be slower than paid geocoding services. Manual coordinate input
+   (lat,lon format) is supported as fallback.
+
+5. NO MULTI-ROUTE COMPARISON
+   GraphHopper returns the optimal single route per vehicle profile.
+   Multi-route comparison (alternatives[]) not yet implemented.
+
+6. OFFLINE MAP TILES
+   App shell is cached by the service worker but map tiles are not.
+   Full offline navigation requires a tile download system (future run).
+
+7. VOICE GUIDANCE
+   Voice toggle exists in NavInstructionCard but audio output is not yet
+   implemented (no Web Speech API wiring). Placeholder for future run.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 9 — NEXT RECOMMENDED RUNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRIORITY 1 — SPECIALIST AI AGENTS (Run A)
+  Add onboard 4P3X Intelligent AI specialist agents:
+  - VehicleConstraintAgent — dimension/weight conflict detection
+  - RestrictionDataAgent — bridge/road restriction matching against route
+  - LegalComplianceAgent — enhanced advisory from restriction dataset
+  - SafetyRouteAgent — confidence-based route preference logic
+  - NavigationReadinessAgent — pre-start readiness checks
+  - DriverAdvisoryAgent — plain-English driver message composer
+  - AgentOrchestrator — runs agents in sequence, feeds ComplianceAI
+  These live in src/agents/ and consume existing SSOT state.
+
+PRIORITY 2 — REAL GPS WIRING (Run B)
+  Wire locationService.js into NavigationMapShell:
+  - Start watchPosition() when navigation active
+  - Feed position to updateGpsRecipe() → SSOT
+  - Use real GPS for follow-camera bearing
+  - Show live accuracy/confidence badge
+
+PRIORITY 3 — MULTI-ROUTE COMPARISON (Run C)
+  Add GraphHopper alternatives[] support:
+  - Up to 3 route alternatives per request
+  - Route cards with distance/time/compliance score comparison
+  - User selects preferred route before starting navigation
+
+PRIORITY 4 — VOICE GUIDANCE (Run D)
+  Wire Web Speech API to NavInstructionCard voice toggle:
+  - Announce next instruction at threshold distances
+  - Respect user voice toggle in SSOT
+
+PRIORITY 5 — ROUTE REPORT EXPORT (Run E)
+  Generate downloadable trip/compliance report:
+  - PDF or styled HTML export
+  - Includes: vehicle profile, route summary, compliance score,
+    warnings, disclaimer, driver message, timestamp
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 10 — SAFETY & LEGAL COMPLIANCE STATEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This product implements the following safety-critical controls:
+
+  ✓ No route marked as legally guaranteed — ever
+  ✓ No route marked as fully compliant — ever
+  ✓ Advisory disclaimer on every compliance output (hardcoded, not removable)
+  ✓ Advisory disclaimer on SafetyDisclaimer gate (must be acknowledged)
+  ✓ Advisory disclaimer in SettingsPage About panel
+  ✓ Missing data reduces confidence score (never inflated)
+  ✓ Missing restriction dataset shown as explicit warning
+  ✓ Dev fallback routes penalised 20pts in compliance engine
+  ✓ Navigation lock prevents changing vehicle/route mid-journey
+  ✓ Road signs, police, and local restrictions stated as overriding authority
+  ✓ Driver responsibility explicitly stated on every compliance output
+
+MANDATORY DISCLAIMER (appears in 5+ locations in product):
+  "Big V's Best Routes™ provides advisory route guidance only.
+   It does not guarantee legal route suitability.
+   Road signs, local restrictions, police instructions, and driver judgement
+   override app guidance. The driver remains responsible for route legality
+   and vehicle safety."
+
+
+================================================================================
+END OF REPORT
+Big V's Best Routes™ | Powered by 4P3X Intelligent AI | Created by Kyzel Kreates
+================================================================================

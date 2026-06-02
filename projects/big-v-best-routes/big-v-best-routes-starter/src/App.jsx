@@ -144,8 +144,8 @@ export default function App() {
         <div className="brandBlock">
           <div className="brandIcon">BV</div>
           <div>
-            <strong>Big V's Best Routes</strong>
-            <span>Safety-first navigation OS</span>
+            <strong>Big V's Best Routes™</strong>
+            <span>Powered by 4P3X Intelligent AI</span>
           </div>
         </div>
 
@@ -199,12 +199,17 @@ export default function App() {
         >
           <RotateCcw size={14} /> Reset app data
         </button>
+
+        <div className="brandCredit">
+          <span>Created by Kyzel Kreates</span>
+          <span>Part of the 4P3X Verse</span>
+        </div>
       </aside>
 
       <section className="content">
         <header className="topBar">
           <div>
-            <p className="eyebrow">Big V's Best Routes — Safety-First Navigation OS</p>
+            <p className="eyebrow">Big V's Best Routes™ — Powered by 4P3X Intelligent AI</p>
             <h1>
               {view === 'planner'    && 'Driver dashboard'}
               {view === 'navigation' && '3D navigation PWA'}

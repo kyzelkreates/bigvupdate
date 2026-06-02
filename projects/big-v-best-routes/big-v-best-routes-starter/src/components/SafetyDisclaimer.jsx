@@ -1,3 +1,11 @@
+/**
+ * SafetyDisclaimer.jsx — Mandatory safety acknowledgement gate
+ * Big V's Best Routes™ — Powered by 4P3X Intelligent AI
+ *
+ * Shown once per session before the app is accessible.
+ * User must explicitly acknowledge advisory-only nature of guidance.
+ */
+
 import { ShieldCheck, TriangleAlert } from 'lucide-react';
 
 export default function SafetyDisclaimer({ onAccept }) {
@@ -7,8 +15,12 @@ export default function SafetyDisclaimer({ onAccept }) {
         <div className="disclaimerIcon">
           <ShieldCheck size={36} />
         </div>
+
         <p className="eyebrow">Safety-critical notice</p>
-        <h2>Big V's Best Routes — Advisory Guidance Only</h2>
+        <h2>Big V's Best Routes™ — Advisory Guidance Only</h2>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 18 }}>
+          Powered by 4P3X Intelligent AI · Created by Kyzel Kreates
+        </p>
 
         <div className="disclaimerBody">
           <p>
@@ -33,9 +45,17 @@ export default function SafetyDisclaimer({ onAccept }) {
           </ul>
         </div>
 
-        <button className="primary" style={{ width: '100%', justifyContent: 'center', padding: 16 }} onClick={onAccept}>
-          <ShieldCheck size={18} /> I understand — continue to Big V's Best Routes
+        <button
+          className="primary"
+          style={{ width: '100%', justifyContent: 'center', padding: 16 }}
+          onClick={onAccept}
+        >
+          <ShieldCheck size={18} /> I understand — continue to Big V's Best Routes™
         </button>
+
+        <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 14, textAlign: 'center' }}>
+          Part of the 4P3X Verse
+        </p>
       </div>
     </div>
   );
