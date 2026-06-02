@@ -202,3 +202,96 @@ function _formatDur(ms) {
   const mins = Math.round(ms / 60000);
   return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}min` : `${mins}min`;
 }
+
+// ─── Extended readiness checks (v2.1 — GPS + map + voice) ────────────────────
+
+/**
+ * Run extended navigation readiness including GPS, MapLibre, and voice checks.
+ * Merges with the base readiness result.
+ *
+ * @param {object} baseResult - from runNavigationReadinessAgent()
+ * @param {object} extParams
+ * @param {string} extParams.locationPermission - from SSOT navigation.locationPermission
+ * @param {boolean} extParams.mapStyleConfigured - from MAP_STYLE_CONFIGURED
+ * @param {boolean} extParams.voiceSupported     - from VOICE_SUPPORTED
+ * @returns {ReadinessResult}
+ */
+export function extendReadinessWithLiveChecks(baseResult, {
+  locationPermission = 'unknown',
+  mapStyleConfigured = false,
+  voiceSupported     = false,
+} = {}) {
+  const extraChecks = [];
+  let extraReadyCount = 0;
+
+  // GPS support
+  const gpsSupported = typeof navigator !== 'undefined' && !!navigator.geolocation;
+  extraChecks.push({
+    id:      'gps-supported',
+    label:   'GPS supported by browser',
+    passed:  gpsSupported,
+    blocker: false,
+    detail:  gpsSupported ? 'Browser supports Geolocation API.' : 'GPS not supported. Simulation mode only.',
+  });
+  if (gpsSupported) extraReadyCount++;
+
+  // GPS permission
+  const gpsPermissionOk = locationPermission === 'granted' || locationPermission === 'prompt' || locationPermission === 'unknown';
+  extraChecks.push({
+    id:      'gps-permission',
+    label:   'GPS permission',
+    passed:  gpsPermissionOk,
+    blocker: false,   // denied GPS doesn't block trip planning, only live nav
+    detail:  locationPermission === 'granted'
+      ? 'GPS permission granted — live navigation ready.'
+      : locationPermission === 'denied'
+        ? 'GPS permission denied. Enable location for live navigation. Simulated position will be used.'
+        : 'GPS permission status unknown — will be requested on navigation start.',
+  });
+  if (gpsPermissionOk) extraReadyCount++;
+
+  // MapLibre style configured
+  extraChecks.push({
+    id:      'map-style',
+    label:   'Map style configured',
+    passed:  mapStyleConfigured,
+    blocker: false,
+    detail:  mapStyleConfigured
+      ? 'VITE_MAP_STYLE_URL configured — navigation map ready.'
+      : 'VITE_MAP_STYLE_URL not set. Navigation will use SVG fallback map.',
+  });
+  if (mapStyleConfigured) extraReadyCount++;
+
+  // Voice guidance
+  extraChecks.push({
+    id:      'voice-supported',
+    label:   'Voice guidance available',
+    passed:  voiceSupported,
+    blocker: false,
+    detail:  voiceSupported
+      ? 'Speech synthesis supported — voice guidance available.'
+      : 'Voice guidance not supported in this browser. Visual guidance only.',
+  });
+  if (voiceSupported) extraReadyCount++;
+
+  // Merge with base result
+  const mergedChecklist    = [...(baseResult.checklist || []), ...extraChecks];
+  const mergedReadyCount   = (baseResult.readyCount || 0) + extraReadyCount;
+  const mergedTotalChecks  = mergedChecklist.length;
+  const mergedReadinessScore = Math.round((mergedReadyCount / mergedTotalChecks) * 100);
+
+  return {
+    ...baseResult,
+    checklist:      mergedChecklist,
+    readyCount:     mergedReadyCount,
+    totalChecks:    mergedTotalChecks,
+    readinessScore: mergedReadinessScore,
+    // Live navigation is fully ready only if GPS granted + map configured
+    liveNavigationReady:        locationPermission === 'granted' && mapStyleConfigured,
+    // Limited nav available: GPS denied but map works
+    limitedNavigationAvailable: mapStyleConfigured && locationPermission !== 'granted',
+    locationPermission,
+    mapStyleConfigured,
+    voiceSupported,
+  };
+}

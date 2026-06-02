@@ -13,7 +13,12 @@ import NavigationMapShell from '../components/NavigationMapShell.jsx';
 import SafetyDisclaimer from '../components/SafetyDisclaimer.jsx';
 import { MAP_STYLE_CONFIGURED } from '../config/mapConfig.js';
 
-export default function NavigationPWA({ state, setState, onStop, onPause, onResume, onStart }) {
+export default function NavigationPWA({
+  state, setState, onStop, onPause, onResume, onStart,
+  onRerouteConfirm, onRerouteAccept, onRerouteDecline,
+  onToggleVoice, onToggleMute, onRepeatInstruction,
+  agents,
+}) {
   const [showDisclaimer, setShowDisclaimer] = useState(!state.app.acceptedSafetyDisclaimer);
 
   const activeVehicle = state.vehicle.profiles[state.vehicle.activeVehicleId];
@@ -81,6 +86,12 @@ export default function NavigationPWA({ state, setState, onStop, onPause, onResu
         onStop={onStop}
         onPause={onPause}
         onResume={onResume}
+        onRerouteConfirm={onRerouteConfirm}
+        onRerouteAccept={onRerouteAccept}
+        onRerouteDecline={onRerouteDecline}
+        onToggleVoice={onToggleVoice}
+        onToggleMute={onToggleMute}
+        onRepeatInstruction={onRepeatInstruction}
       />
 
       {/* ── Navigation control bar ───────────────────────────────────── */}

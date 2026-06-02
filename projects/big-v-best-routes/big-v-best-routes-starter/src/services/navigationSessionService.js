@@ -108,3 +108,129 @@ export function reroutingRecipe() {
     draft.navigation.status = NAV_STATES.REROUTING;
   };
 }
+
+// ─── Extended GPS + route progress recipes (v2.1) ─────────────────────────────
+
+/**
+ * Update GPS position, confidence, and derived fields in SSOT.
+ * Called on every watchPosition callback.
+ *
+ * @param {object} normalised - from locationService.normalizePosition()
+ */
+export function updateGpsPositionRecipe(normalised) {
+  return (draft) => {
+    draft.navigation.gpsStatus            = 'real';
+    draft.navigation.gpsWatchActive       = true;
+    draft.navigation.locationPermission   = 'granted';
+    draft.navigation.currentLat           = normalised.lat;
+    draft.navigation.currentLon           = normalised.lon;
+    draft.navigation.currentHeading       = normalised.heading;
+    draft.navigation.gpsSpeed             = normalised.speed;
+    draft.navigation.gpsSpeedKph          = normalised.speedKph;
+    draft.navigation.gpsSpeedMph          = normalised.speedMph;
+    draft.navigation.gpsAccuracy          = normalised.accuracy;
+    draft.navigation.gpsConfidence        = normalised.gpsConfidence;
+    draft.navigation.gpsLastUpdated       = normalised.lastUpdated;
+    draft.navigation.gpsIsStale           = false;
+    draft.navigation.offlineStatus        = navigator.onLine ? 'online' : 'offline';
+  };
+}
+
+/**
+ * Update route progress engine output into SSOT.
+ * Called after calculateRouteProgress() on every GPS update.
+ *
+ * @param {RouteProgressResult} progress - from routeProgressEngine
+ */
+export function updateRouteProgressRecipe(progress) {
+  return (draft) => {
+    draft.navigation.progressFraction            = progress.progressFraction;
+    draft.navigation.routeProgressPercent        = progress.routeProgressPercent;
+    draft.navigation.currentInstructionIndex     = progress.currentInstructionIndex;
+    draft.navigation.currentInstruction          = progress.currentInstruction?.text
+                                                    || draft.navigation.currentInstruction;
+    draft.navigation.nextInstruction             = progress.nextInstruction;
+    draft.navigation.nextInstructionIndex        = progress.nextInstructionIndex;
+    draft.navigation.distanceToNextInstructionM  = progress.distanceToNextInstructionM;
+    draft.navigation.remainingDistanceM          = progress.remainingDistanceM;
+    draft.navigation.remainingDurationMs         = progress.remainingDurationMs;
+    draft.navigation.offRouteStatus              = progress.offRoute;
+    draft.navigation.offRouteDistanceM           = progress.offRouteDistanceM;
+    draft.navigation.navigationWarnings          = progress.warnings || [];
+
+    // Track consecutive off-route fixes
+    if (progress.offRoute) {
+      draft.navigation.offRouteConsecutiveFixes = (draft.navigation.offRouteConsecutiveFixes || 0) + 1;
+    } else {
+      draft.navigation.offRouteConsecutiveFixes = 0;
+    }
+  };
+}
+
+/**
+ * Set GPS permission state.
+ */
+export function setGpsPermissionRecipe(permission) {
+  return (draft) => {
+    draft.navigation.locationPermission = permission;
+    if (permission === 'denied' || permission === 'unavailable') {
+      draft.navigation.gpsStatus    = 'unavailable';
+      draft.navigation.gpsWatchActive = false;
+    }
+  };
+}
+
+/**
+ * Set GPS error state — never crashes, just records error.
+ */
+export function setGpsErrorRecipe(err) {
+  return (draft) => {
+    draft.navigation.gpsStatus = 'unavailable';
+    draft.navigation.gpsWatchActive = false;
+    if (err?.code === 1) {
+      draft.navigation.locationPermission = 'denied';
+    }
+  };
+}
+
+/**
+ * Mark GPS as stale.
+ */
+export function setGpsStalRecipe() {
+  return (draft) => {
+    draft.navigation.gpsIsStale = true;
+  };
+}
+
+/**
+ * Update voice guidance state in SSOT.
+ * @param {object} partial - partial voice state to merge
+ */
+export function updateVoiceStateRecipe(partial) {
+  return (draft) => {
+    draft.navigation.voice = { ...draft.navigation.voice, ...partial };
+  };
+}
+
+/**
+ * Toggle voice enabled state.
+ */
+export function toggleVoiceRecipe() {
+  return (draft) => {
+    const enabled = !(draft.navigation.voice?.enabled ?? false);
+    draft.navigation.voice = { ...draft.navigation.voice, enabled };
+    if (!enabled) {
+      draft.navigation.voice.muted = false;
+    }
+  };
+}
+
+/**
+ * Toggle voice muted state.
+ */
+export function toggleVoiceMuteRecipe() {
+  return (draft) => {
+    const muted = !(draft.navigation.voice?.muted ?? false);
+    draft.navigation.voice = { ...draft.navigation.voice, muted };
+  };
+}

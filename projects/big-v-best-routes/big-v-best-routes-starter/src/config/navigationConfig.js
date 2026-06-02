@@ -62,3 +62,23 @@ export function buildNavigationSession({
     offlineStatus:     navigator.onLine ? 'online' : 'offline',
   };
 }
+
+// ─── Route progress / off-route constants ────────────────────────────────────
+
+/** Distance from route polyline before off-route is triggered (metres) */
+export const OFF_ROUTE_THRESHOLD_M = 50;
+
+/** GPS position is considered stale after this many seconds */
+export const GPS_STALE_AFTER_SECONDS = 15;
+
+/** GPS accuracy worse than this (metres) is considered low confidence */
+export const LOW_GPS_CONFIDENCE_ACCURACY_M = 75;
+
+/** Minimum distance moved (metres) before updating heading from movement */
+export const MIN_MOVEMENT_FOR_HEADING_M = 5;
+
+/** Reroute cooldown — minimum ms between reroute attempts */
+export const REROUTE_COOLDOWN_MS = 10_000;
+
+/** Consecutive off-route fixes before triggering reroute prompt */
+export const OFF_ROUTE_CONSECUTIVE_FIXES = 3;

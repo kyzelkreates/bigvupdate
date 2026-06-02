@@ -90,6 +90,57 @@ export const initialState = {
     eta:                null,
 
     voiceEnabled:   false,
+
+    // ── Real GPS wiring (extended v2.1) ──────────────────────────────────
+    locationPermission:    'unknown',    // 'unknown' | 'granted' | 'denied' | 'unavailable'
+    gpsAccuracy:           null,         // metres
+    gpsSpeed:              null,         // m/s
+    gpsSpeedKph:           null,
+    gpsSpeedMph:           null,
+    gpsLastUpdated:        null,         // ISO string
+    gpsIsStale:            false,
+    gpsWatchActive:        false,
+
+    // ── Route progress (from routeProgressEngine) ────────────────────────
+    progressFraction:            0,
+    routeProgressPercent:        0,
+    currentInstructionIndex:     0,
+    currentInstruction:          null,
+    nextInstruction:             null,
+    nextInstructionIndex:        1,
+    distanceToNextInstructionM:  null,
+    offRouteStatus:              false,
+    offRouteDistanceM:           0,
+    offRouteConsecutiveFixes:    0,
+    navigationWarnings:          [],
+
+    // ── Reroute state ─────────────────────────────────────────────────────
+    reroute: {
+      status:                    'idle',
+      reason:                    null,
+      offRouteDistanceM:         null,
+      proposedRoute:             null,
+      proposedCompliance:        null,
+      proposedAgentResults:      null,
+      requiresAcknowledgement:   false,
+      acknowledgedHighRisk:      false,
+      reroutes:                  [],
+      error:                     null,
+      lastDetectedAt:            null,
+    },
+
+    // ── Voice guidance state ─────────────────────────────────────────────
+    voice: {
+      enabled:                   false,
+      muted:                     false,
+      lastSpokenInstructionId:   null,
+      lastSpokenWarningId:       null,
+      supported:                 false,
+      error:                     null,
+    },
+
+    // ── Offline trip pack ─────────────────────────────────────────────────
+    offlineTripPack:       null,
   },
 
   compliance: {

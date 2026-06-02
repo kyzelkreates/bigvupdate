@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Map, Route, ShieldCheck, Settings, BookMarked, RotateCcw } from 'lucide-react';
 import PlannerDashboard from './pages/PlannerDashboard.jsx';
 import NavigationPWA from './pages/NavigationPWA.jsx';
@@ -13,13 +13,53 @@ import {
   stopSessionRecipe,
   pauseSessionRecipe,
   resumeSessionRecipe,
+  updateGpsPositionRecipe,
+  updateRouteProgressRecipe,
+  setGpsPermissionRecipe,
+  setGpsErrorRecipe,
+  setGpsStalRecipe,
+  updateVoiceStateRecipe,
+  toggleVoiceRecipe,
+  toggleVoiceMuteRecipe,
 } from './services/navigationSessionService.js';
+import {
+  startLocationWatch,
+  stopLocationWatch,
+  checkLocationPermission,
+  requestLocationPermission,
+} from './services/locationService.js';
+import { calculateRouteProgress, getVoiceTrigger } from './services/routeProgressEngine.js';
+import {
+  REROUTE_STATUS,
+  promptRerouteRecipe,
+  acceptRerouteRecipe,
+  declineRerouteRecipe,
+  rerouteErrorRecipe,
+  executeReroute,
+  getInitialRerouteState,
+} from './services/rerouteService.js';
+import {
+  speakInstruction, speakWarning, stopSpeaking, triggerInstructionVoice,
+  triggerWarningVoice, onNavigationStop, getInitialVoiceState, VOICE_SUPPORTED,
+} from './services/voiceGuidanceService.js';
+import {
+  buildOfflineTripPack,
+  saveTripPackRecipe,
+  clearTripPackRecipe,
+} from './services/offlineTripPackService.js';
+import { OFF_ROUTE_CONSECUTIVE_FIXES, REROUTE_COOLDOWN_MS } from './config/navigationConfig.js';
 import { runAgentSuite, mergeAgentResultsIntoCompliance } from './agents/agentOrchestrator.js';
 import './styles/app.css';
 
 export default function App() {
   const [state, setRawState] = useState(loadState);
   const [routeLoading, setRouteLoading] = useState(false);
+
+  // GPS watcher ref — lives outside React state to avoid stale closures
+  const gpsWatchIdRef       = useRef(null);
+  const lastRerouteTimeRef  = useRef(0);
+  const prevInstrIdxRef     = useRef(0);
+  const voiceSpokenRef      = useRef({ instrId: null, warnId: null });
 
   const activeVehicle = state.vehicle.profiles[state.vehicle.activeVehicleId];
 
@@ -171,20 +211,239 @@ export default function App() {
     });
   }
 
+  // ── GPS wiring: start live GPS watch when navigation begins ────────────────
+  const startGpsWatch = useCallback(() => {
+    if (gpsWatchIdRef.current != null) return; // already watching
+
+    const watchId = startLocationWatch(
+      // onPosition — called on every GPS update
+      (normalised) => {
+        // 1. Update GPS fields in SSOT
+        setState(updateGpsPositionRecipe(normalised));
+
+        // 2. Calculate route progress
+        setRawState((current) => {
+          const nav     = current.navigation;
+          const route   = nav.routeSnapshot?.route || current.trip.lastRouteResult?.route;
+          const polyline = route?.polyline || [];
+          if (polyline.length < 2 || nav.status !== 'active') return current;
+
+          const progress = calculateRouteProgress({
+            lat:           normalised.lat,
+            lon:           normalised.lon,
+            accuracy:      normalised.accuracy,
+            timestamp:     normalised.timestamp,
+            polyline,
+            instructions:  route.instructions || [],
+            prevInstrIdx:  prevInstrIdxRef.current,
+            totalDistanceM:  route.distanceM,
+            totalDurationMs: route.durationMs,
+            useMetric:     current.settings.useMetric !== false,
+          });
+
+          // 3. Voice guidance trigger
+          if (progress.currentInstructionIndex !== prevInstrIdxRef.current) {
+            const instr = progress.currentInstruction;
+            if (instr?.text) {
+              const voiceResult = triggerInstructionVoice({
+                instructionText: instr.text,
+                instructionId:   `${progress.currentInstructionIndex}`,
+                voiceState:      current.navigation.voice,
+              });
+              if (voiceResult.updatedVoiceState) {
+                updateState(current, (d) => {
+                  d.navigation.voice = { ...d.navigation.voice, ...voiceResult.updatedVoiceState };
+                });
+              }
+            }
+            prevInstrIdxRef.current = progress.currentInstructionIndex;
+          }
+
+          // 4. Off-route + reroute prompt
+          const newConsecutive = progress.offRoute
+            ? (current.navigation.offRouteConsecutiveFixes || 0) + 1
+            : 0;
+          const shouldPromptReroute =
+            progress.offRoute &&
+            newConsecutive >= OFF_ROUTE_CONSECUTIVE_FIXES &&
+            current.navigation.reroute?.status === 'idle' &&
+            (Date.now() - lastRerouteTimeRef.current) > REROUTE_COOLDOWN_MS;
+
+          if (shouldPromptReroute) {
+            lastRerouteTimeRef.current = Date.now();
+            // Speak off-route warning
+            triggerWarningVoice({
+              warningText: 'Off route. Rerouting recommended.',
+              warningId:   'off-route',
+              voiceState:  current.navigation.voice,
+            });
+          }
+
+          return updateState(current, (d) => {
+            // Progress
+            d.navigation.progressFraction            = progress.progressFraction;
+            d.navigation.routeProgressPercent        = progress.routeProgressPercent;
+            d.navigation.currentInstructionIndex     = progress.currentInstructionIndex;
+            d.navigation.nextInstruction             = progress.nextInstruction;
+            d.navigation.nextInstructionIndex        = progress.nextInstructionIndex;
+            d.navigation.distanceToNextInstructionM  = progress.distanceToNextInstructionM;
+            d.navigation.remainingDistanceM          = progress.remainingDistanceM;
+            d.navigation.remainingDurationMs         = progress.remainingDurationMs;
+            d.navigation.offRouteStatus              = progress.offRoute;
+            d.navigation.offRouteDistanceM           = progress.offRouteDistanceM;
+            d.navigation.offRouteConsecutiveFixes    = newConsecutive;
+            d.navigation.navigationWarnings          = progress.warnings || [];
+            if (progress.currentInstruction?.text) {
+              d.navigation.currentInstruction        = progress.currentInstruction.text;
+            }
+            if (shouldPromptReroute) {
+              d.navigation.reroute = {
+                ...(d.navigation.reroute || {}),
+                status:            'prompt',
+                reason:            'off_route',
+                offRouteDistanceM: progress.offRouteDistanceM,
+                lastDetectedAt:    new Date().toISOString(),
+              };
+              d.navigation.status = 'rerouting';
+            }
+          });
+        });
+      },
+      // onError
+      (err) => {
+        setState(setGpsErrorRecipe(err));
+        if (err.code === 1) {
+          // Permission denied — don't crash, just degrade to simulation
+          console.warn('[App] GPS denied:', err.message);
+        }
+      },
+    );
+    gpsWatchIdRef.current = watchId;
+  }, []);  // eslint-disable-line
+
+  const stopGpsWatch = useCallback(() => {
+    if (gpsWatchIdRef.current != null) {
+      stopLocationWatch(gpsWatchIdRef.current);
+      gpsWatchIdRef.current = null;
+    }
+    onNavigationStop();
+  }, []);
+
+  // ── GPS permission check on mount ────────────────────────────────────────
+  useEffect(() => {
+    checkLocationPermission().then((perm) => {
+      setState(setGpsPermissionRecipe(perm));
+    });
+    // Initialise voice state
+    setState((draft) => {
+      draft.navigation.voice = {
+        ...getInitialVoiceState(),
+        ...(draft.navigation.voice || {}),
+        supported: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      };
+    });
+  }, []);  // eslint-disable-line
+
+  // ── Start/stop GPS watch when navigation status changes ──────────────────
+  useEffect(() => {
+    const status = state.navigation.status;
+    if (status === 'active') {
+      startGpsWatch();
+    } else if (status === 'stopped' || status === 'completed' || status === 'notStarted') {
+      stopGpsWatch();
+      prevInstrIdxRef.current = 0;
+    }
+  }, [state.navigation.status]);  // eslint-disable-line
+
+  // ── Build offline trip pack after successful route calculation ────────────
+  useEffect(() => {
+    if (state.trip.routeStatus === 'success' && state.trip.lastRouteResult?.route) {
+      const vehicle = state.vehicle.profiles[state.vehicle.activeVehicleId];
+      const pack = buildOfflineTripPack({
+        trip:         state.trip,
+        vehicle,
+        compliance:   state.compliance,
+        agents:       state.agents,
+        restrictions: state.restrictions,
+        useMetric:    state.settings.useMetric !== false,
+      });
+      if (pack) setState(saveTripPackRecipe(pack));
+    }
+  }, [state.trip.routeStatus]);  // eslint-disable-line
+
+  // ── Cleanup on unmount ────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => { stopGpsWatch(); };
+  }, []);  // eslint-disable-line
+
   function startNavigation() {
+    prevInstrIdxRef.current = 0;
     setState(startSessionRecipe(state));
+    // GPS watch is started by the useEffect above when status → 'active'
   }
 
   function stopNavigation() {
+    stopGpsWatch();
     setState(stopSessionRecipe());
+    setState(clearTripPackRecipe());
   }
 
   function pauseNavigation() {
     setState(pauseSessionRecipe());
+    // Keep GPS watch active during pause
   }
 
   function resumeNavigation() {
     setState(resumeSessionRecipe());
+  }
+
+  // ── Reroute handlers ──────────────────────────────────────────────────────
+  function handleRerouteConfirm() {
+    const nav  = state.navigation;
+    const dest = state.trip.destination;
+    if (!nav.currentLat || !nav.currentLon) {
+      setState(rerouteErrorRecipe('GPS position required for rerouting.'));
+      return;
+    }
+    const vehicle = state.vehicle.profiles[state.vehicle.activeVehicleId];
+    executeReroute({
+      currentLat:   nav.currentLat,
+      currentLon:   nav.currentLon,
+      destination:  dest,
+      vehicle,
+      restrictions: state.restrictions,
+      settings:     state.settings,
+      onRecipe:     setState,
+    });
+  }
+
+  function handleRerouteAccept() {
+    setState(acceptRerouteRecipe());
+  }
+
+  function handleRerouteDecline() {
+    setState(declineRerouteRecipe());
+  }
+
+  // ── Voice handlers ─────────────────────────────────────────────────────────
+  function handleToggleVoice() {
+    const enabled = !(state.navigation.voice?.enabled ?? false);
+    if (!enabled) stopSpeaking();
+    setState(toggleVoiceRecipe());
+  }
+
+  function handleToggleVoiceMute() {
+    const muted = !(state.navigation.voice?.muted ?? false);
+    if (!muted) stopSpeaking();
+    setState(toggleVoiceMuteRecipe());
+  }
+
+  function handleRepeatInstruction() {
+    const instr = state.navigation.currentInstruction;
+    if (instr) {
+      stopSpeaking();
+      speakInstruction(instr, { enabled: true, muted: false, supported: true });
+    }
   }
 
   const view = useMemo(() => state.app.mode, [state.app.mode]);
@@ -300,6 +559,13 @@ export default function App() {
             onPause={pauseNavigation}
             onResume={resumeNavigation}
             onStart={startNavigation}
+            onRerouteConfirm={handleRerouteConfirm}
+            onRerouteAccept={handleRerouteAccept}
+            onRerouteDecline={handleRerouteDecline}
+            onToggleVoice={handleToggleVoice}
+            onToggleMute={handleToggleVoiceMute}
+            onRepeatInstruction={handleRepeatInstruction}
+            agents={state.agents}
           />
         )}
         {view === 'settings' && (
