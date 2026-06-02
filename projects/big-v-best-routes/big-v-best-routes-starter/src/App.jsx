@@ -6,8 +6,14 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import SavedTripsPage from './pages/SavedTripsPage.jsx';
 import { loadState, resetState, updateState } from './core/storage.js';
 import { runComplianceCheck } from './core/complianceEngine.js';
-import { calculateGraphHopperRoute } from './core/graphHopperAdapter.js';
+import { calculateRoute } from './services/graphhopperClient.js';
 import { cacheTrip } from './services/offlineCache.js';
+import {
+  startSessionRecipe,
+  stopSessionRecipe,
+  pauseSessionRecipe,
+  resumeSessionRecipe,
+} from './services/navigationSessionService.js';
 import './styles/app.css';
 
 export default function App() {
@@ -34,38 +40,47 @@ export default function App() {
     });
   }
 
-  async function calculateRoute() {
+  async function handleCalculateRoute() {
     if (routeLoading) return;
     setRouteLoading(true);
     setState((draft) => {
       draft.trip.routeStatus = 'loading';
-      draft.trip.routeError = null;
+      draft.trip.routeError  = null;
     });
 
     try {
-      const result = await calculateGraphHopperRoute({
-        origin: state.trip.origin,
+      const result = await calculateRoute({
+        origin:      state.trip.origin,
         destination: state.trip.destination,
-        vehicle: activeVehicle,
-        apiKey: state.settings.graphHopperApiKey,
-        forceDemo: state.settings.demoMode === true,
+        vehicle:     activeVehicle,
+        apiKey:      state.settings.graphHopperApiKey,
+        // forceDemo removed — use VITE_ENABLE_DEV_ROUTE_FALLBACK=true for dev fallback
       });
 
       setState((draft) => {
         draft.trip.lastRouteResult = result;
-        draft.trip.routeStatus = result.ok || result.demoMode ? (result.demoMode ? 'demo' : 'success') : 'error';
-        draft.trip.routeError = result.ok || result.demoMode ? null : result.message;
+
+        if (result.setupRequired) {
+          draft.trip.routeStatus = 'setup_required';
+          draft.trip.routeError  = result.message;
+        } else if (result.ok) {
+          draft.trip.routeStatus = result.demoMode ? 'dev_fallback' : 'success';
+          draft.trip.routeError  = result.demoMode ? result.message : null;
+        } else {
+          draft.trip.routeStatus = 'error';
+          draft.trip.routeError  = result.message;
+        }
 
         if (result.route) {
           draft.navigation.remainingDistanceM = result.route.distanceM;
           draft.navigation.remainingDurationMs = result.route.durationMs;
           if (result.route.instructions?.length) {
-            draft.navigation.nextManoeuvre = result.route.instructions[0];
-            draft.navigation.distanceToNextM = result.route.instructions[0].distanceM;
+            draft.navigation.nextManoeuvre    = result.route.instructions[0];
+            draft.navigation.distanceToNextM  = result.route.instructions[0].distanceM;
           }
         }
 
-        // Auto-run compliance after route
+        // Auto-run compliance after every route calculation
         const vehicle = draft.vehicle.profiles[draft.vehicle.activeVehicleId];
         const complianceResult = runComplianceCheck({
           vehicle,
@@ -78,7 +93,7 @@ export default function App() {
     } catch (err) {
       setState((draft) => {
         draft.trip.routeStatus = 'error';
-        draft.trip.routeError = err.message || 'Unexpected error calculating route.';
+        draft.trip.routeError  = err.message || 'Unexpected error calculating route.';
       });
     } finally {
       setRouteLoading(false);
@@ -103,20 +118,25 @@ export default function App() {
   }
 
   function startNavigation() {
-    setState((draft) => {
-      draft.navigation.status = 'active';
-      draft.navigation.active = true;
-      draft.navigation.lockedVehicleId = draft.vehicle.activeVehicleId;
-      draft.navigation.lockedRouteId = draft.trip.selectedRouteId;
-      draft.navigation.startedAt = new Date().toISOString();
-      draft.navigation.gpsConfidence = 88;
-      draft.navigation.currentInstruction = 'Follow the highlighted route.';
-      draft.app.mode = 'navigation';
-    });
+    setState(startSessionRecipe(state));
+  }
+
+  function stopNavigation() {
+    setState(stopSessionRecipe());
+  }
+
+  function pauseNavigation() {
+    setState(pauseSessionRecipe());
+  }
+
+  function resumeNavigation() {
+    setState(resumeSessionRecipe());
   }
 
   const view = useMemo(() => state.app.mode, [state.app.mode]);
-  const navLocked = state.navigation.status === 'active';
+  const navLocked = state.navigation.status === 'active' || state.navigation.status === 'paused';
+  const apiKeyConfigured = !!(state.settings.graphHopperApiKey ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GRAPHHOPPER_API_KEY));
 
   return (
     <div className="appShell">
@@ -159,8 +179,8 @@ export default function App() {
         <div className="sideCard">
           <span>Active vehicle</span>
           <strong>{activeVehicle?.name || '—'}</strong>
-          <small>{(activeVehicle?.type || '').toUpperCase()} template</small>
-          {navLocked && <span className="badge danger" style={{ marginTop: 6 }}>🔒 Locked during navigation</span>}
+          <small>{(activeVehicle?.type || '').toUpperCase()} profile</small>
+          {navLocked && <span className="badge danger" style={{ marginTop: 6 }}>🔒 Navigation active</span>}
         </div>
 
         <div className="sideCard" style={{ marginTop: 0 }}>
@@ -169,8 +189,15 @@ export default function App() {
           <small>{state.compliance.status?.replaceAll('_', ' ')}</small>
         </div>
 
-        <button className="resetButton" onClick={() => setRawState(resetState())}>
-          <RotateCcw size={14} /> Reset demo state
+        <button
+          className="resetButton"
+          onClick={() => {
+            if (window.confirm('Reset all trip and vehicle data to defaults?')) {
+              setRawState(resetState());
+            }
+          }}
+        >
+          <RotateCcw size={14} /> Reset app data
         </button>
       </aside>
 
@@ -179,18 +206,18 @@ export default function App() {
           <div>
             <p className="eyebrow">Big V's Best Routes — Safety-First Navigation OS</p>
             <h1>
-              {view === 'planner' && 'Driver dashboard'}
-              {view === 'navigation' && '3D navigation dashboard'}
-              {view === 'settings' && 'Settings'}
-              {view === 'saved' && 'Saved trips'}
+              {view === 'planner'    && 'Driver dashboard'}
+              {view === 'navigation' && '3D navigation PWA'}
+              {view === 'settings'   && 'Settings'}
+              {view === 'saved'      && 'Saved trips'}
             </h1>
           </div>
           <div className="topBadges">
-            <span className={`badge ${state.settings.graphHopperApiKey ? 'green' : ''}`}>
-              {state.settings.graphHopperApiKey ? 'GraphHopper live' : 'Demo routing'}
+            <span className={`badge ${apiKeyConfigured ? 'green' : 'warning'}`}>
+              {apiKeyConfigured ? 'GraphHopper configured' : '⚠ GraphHopper: setup required'}
             </span>
             <span className="badge purple">Compliance AI</span>
-            <span className="badge">Local-first SSOT</span>
+            <span className="badge">Local-first</span>
           </div>
         </header>
 
@@ -199,14 +226,21 @@ export default function App() {
             state={state}
             setState={setState}
             runCompliance={runCompliance}
-            calculateRoute={calculateRoute}
+            calculateRoute={handleCalculateRoute}
             routeLoading={routeLoading}
             saveCurrentTrip={saveCurrentTrip}
             startNavigation={startNavigation}
           />
         )}
         {view === 'navigation' && (
-          <NavigationPWA state={state} setState={setState} />
+          <NavigationPWA
+            state={state}
+            setState={setState}
+            onStop={stopNavigation}
+            onPause={pauseNavigation}
+            onResume={resumeNavigation}
+            onStart={startNavigation}
+          />
         )}
         {view === 'settings' && (
           <SettingsPage state={state} setState={setState} />

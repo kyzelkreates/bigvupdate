@@ -1,47 +1,29 @@
+/**
+ * NavigationPWA.jsx — Full-screen driver navigation page
+ * Big V's Best Routes
+ *
+ * This page owns the navigation layout.
+ * NavigationMapShell owns the map rendering.
+ * All session state flows through SSOT (storage.js).
+ */
+
+import { useState } from 'react';
+import { ShieldAlert, Wifi, WifiOff, MapPin, AlertTriangle } from 'lucide-react';
 import NavigationMapShell from '../components/NavigationMapShell.jsx';
 import SafetyDisclaimer from '../components/SafetyDisclaimer.jsx';
-import { useState } from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { MAP_STYLE_CONFIGURED } from '../config/mapConfig.js';
 
-export default function NavigationPWA({ state, setState }) {
+export default function NavigationPWA({ state, setState, onStop, onPause, onResume, onStart }) {
   const [showDisclaimer, setShowDisclaimer] = useState(!state.app.acceptedSafetyDisclaimer);
+
   const activeVehicle = state.vehicle.profiles[state.vehicle.activeVehicleId];
-  const navStatus = state.navigation.status;
-  const isActive = navStatus === 'active';
-
-  function startNavigation() {
-    setState((draft) => {
-      draft.navigation.status = 'active';
-      draft.navigation.active = true;
-      draft.navigation.lockedVehicleId = draft.vehicle.activeVehicleId;
-      draft.navigation.startedAt = new Date().toISOString();
-      draft.navigation.gpsConfidence = 88;
-      draft.navigation.simulatedMode = true;
-      draft.navigation.currentInstruction = 'Follow the highlighted route. Prepare for next instruction.';
-    });
-  }
-
-  function stopNavigation() {
-    setState((draft) => {
-      draft.navigation.status = 'stopped';
-      draft.navigation.active = false;
-      draft.navigation.lockedVehicleId = null;
-      draft.navigation.startedAt = null;
-      draft.navigation.currentInstruction = 'Navigation stopped. Vehicle profile can now be changed.';
-    });
-  }
-
-  function pauseNavigation() {
-    setState((draft) => {
-      draft.navigation.status = 'paused';
-    });
-  }
-
-  function resumeNavigation() {
-    setState((draft) => {
-      draft.navigation.status = 'active';
-    });
-  }
+  const navStatus     = state.navigation.status;
+  const isActive      = navStatus === 'active';
+  const isPaused      = navStatus === 'paused';
+  const isStopped     = navStatus === 'stopped' || navStatus === 'notStarted';
+  const hasRoute      = !!state.trip.lastRouteResult?.route;
+  const routeIsReal   = hasRoute && !state.trip.lastRouteResult?.demoMode;
+  const routeIsDevFallback = hasRoute && !!state.trip.lastRouteResult?.demoMode;
 
   function acceptDisclaimer() {
     setShowDisclaimer(false);
@@ -52,53 +34,103 @@ export default function NavigationPWA({ state, setState }) {
     return <SafetyDisclaimer onAccept={acceptDisclaimer} />;
   }
 
-  const hasRoute = !!state.trip.lastRouteResult?.route;
-  const noRoute = !hasRoute && !isActive;
+  // Start navigation requires: route exists, not a dev fallback (or user explicitly chooses to proceed)
+  const canStartNavigation = hasRoute && !isActive && !isPaused;
 
   return (
     <main className="navigationPage">
-      {/* Pre-nav warning if no route */}
-      {noRoute && (
-        <div className="statusBanner demo" style={{ margin: '0 0 12px 0' }}>
+
+      {/* ── No route warning ─────────────────────────────────────────── */}
+      {!hasRoute && !isActive && (
+        <div className="statusBanner error" style={{ margin: '0 0 12px 0' }}>
           <ShieldAlert size={16} />
-          No route calculated yet. Go to Trip Planning to calculate a route first.
+          No route calculated. Go to Trip Planning, enter an origin and destination, and calculate a route before navigating.
         </div>
       )}
 
+      {/* ── GraphHopper setup required ───────────────────────────────── */}
+      {state.trip.routeStatus === 'setup_required' && (
+        <div className="statusBanner warning" style={{ margin: '0 0 12px 0' }}>
+          <AlertTriangle size={16} />
+          GraphHopper API key required. Go to Settings to configure your routing provider.
+        </div>
+      )}
+
+      {/* ── Dev fallback route warning ───────────────────────────────── */}
+      {routeIsDevFallback && (
+        <div className="statusBanner demo" style={{ margin: '0 0 12px 0' }}>
+          <AlertTriangle size={16} />
+          Dev fallback route active (VITE_ENABLE_DEV_ROUTE_FALLBACK=true). Configure GraphHopper for real routing.
+        </div>
+      )}
+
+      {/* ── MapLibre setup required ──────────────────────────────────── */}
+      {!MAP_STYLE_CONFIGURED && (
+        <div className="statusBanner warning" style={{ margin: '0 0 8px 0', fontSize: 13 }}>
+          <AlertTriangle size={15} />
+          Map style not configured. Set <code>VITE_MAP_STYLE_URL</code> in <code>.env</code> for the full navigation map.
+        </div>
+      )}
+
+      {/* ── Navigation map shell ─────────────────────────────────────── */}
       <NavigationMapShell
         navigation={state.navigation}
         vehicle={activeVehicle}
         routeResult={state.trip.lastRouteResult}
         compliance={state.compliance}
-        onStop={stopNavigation}
-        onPause={pauseNavigation}
-        onResume={resumeNavigation}
+        onStop={onStop}
+        onPause={onPause}
+        onResume={onResume}
       />
 
-      {/* Control bar below map */}
+      {/* ── Navigation control bar ───────────────────────────────────── */}
       <div className="navControlBar">
-        {!isActive ? (
-          <button className="primary" onClick={startNavigation}>
-            Start navigation — lock vehicle
+        {isStopped && canStartNavigation && (
+          <button className="primary" onClick={onStart}>
+            Start navigation — lock vehicle &amp; route
           </button>
-        ) : (
+        )}
+
+        {isStopped && !canStartNavigation && (
+          <button className="primary" disabled>
+            <MapPin size={15} /> Calculate a route first
+          </button>
+        )}
+
+        {isActive && (
           <>
-            {navStatus === 'paused' ? (
-              <button className="primary" onClick={resumeNavigation}>Resume navigation</button>
-            ) : (
-              <button className="ghost" onClick={pauseNavigation}>Pause</button>
-            )}
-            <button className="dangerButton" onClick={stopNavigation}>Stop navigation</button>
+            <button className="ghost" onClick={onPause}>Pause</button>
+            <button className="dangerButton" onClick={onStop}>Stop navigation</button>
           </>
         )}
 
-        <span className={`badge ${state.app.offlineReady ? 'green' : ''}`}>
-          {state.app.offlineReady ? '✓ Offline ready' : 'PWA shell cached'}
-        </span>
-        <span className="badge purple">MapLibre-ready</span>
-        {state.navigation.simulatedMode && (
-          <span className="badge" style={{ color: 'var(--warning)' }}>Simulated GPS</span>
+        {isPaused && (
+          <>
+            <button className="primary" onClick={onResume}>Resume navigation</button>
+            <button className="dangerButton" onClick={onStop}>Stop navigation</button>
+          </>
         )}
+
+        {/* Status badges */}
+        <div className="navStatusBadges">
+          <span className={`badge ${navigator.onLine ? 'green' : 'danger'}`}>
+            {navigator.onLine ? <><Wifi size={11} /> Online</> : <><WifiOff size={11} /> Offline</>}
+          </span>
+
+          {state.navigation.gpsStatus === 'real' && (
+            <span className="badge green">Live GPS</span>
+          )}
+          {state.navigation.gpsStatus === 'simulated' && (
+            <span className="badge" style={{ color: 'var(--muted)', fontSize: 11 }}>Simulated position</span>
+          )}
+
+          {routeIsReal && <span className="badge green">GraphHopper route</span>}
+          {routeIsDevFallback && <span className="badge" style={{ color: 'var(--warning)' }}>Dev route</span>}
+
+          {isActive && state.navigation.lockedVehicleId && (
+            <span className="badge danger">🔒 Vehicle locked</span>
+          )}
+        </div>
       </div>
     </main>
   );

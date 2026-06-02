@@ -168,3 +168,27 @@ pre code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
 
 /* ─── maplibre-gl CSS import marker ────────────────────────────────────── */
 /* maplibre-gl styles are imported via JS — see NavigationMapShell.jsx */
+
+/* ─── API status panel ──────────────────────────────────────────────────── */
+.apiStatusPanel { border-left: 4px solid var(--warning); background: rgba(255,176,32,.07); margin-bottom: 16px; }
+.apiStatusPanel code { background: rgba(255,255,255,.08); border-radius: 6px; padding: 1px 5px; font-size: 12px; }
+
+/* ─── Nav status badges ─────────────────────────────────────────────────── */
+.navStatusBadges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: auto; }
+
+/* ─── Map setup required state ──────────────────────────────────────────── */
+.mapSetupRequired {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 24px; background: rgba(7,11,18,.92); z-index: 20;
+}
+.mapSetupRequired h3 { font-size: 20px; margin-bottom: 10px; }
+.mapSetupRequired p  { color: var(--muted); font-size: 14px; max-width: 400px; line-height: 1.5; }
+.mapSetupRequired code { background: rgba(255,255,255,.08); border-radius: 6px; padding: 2px 6px; font-size: 12px; }
+
+/* ─── Warning status banner ─────────────────────────────────────────────── */
+.statusBanner.warning {
+  background: rgba(255,176,32,.12);
+  border: 1px solid rgba(255,176,32,.35);
+  color: var(--warning);
+}
