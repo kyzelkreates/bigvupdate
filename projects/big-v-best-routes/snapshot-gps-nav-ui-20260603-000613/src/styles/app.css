@@ -1,0 +1,997 @@
+:root {
+  color-scheme: dark;
+  --bg: #070b12;
+  --panel: rgba(16, 24, 39, 0.82);
+  --panel2: rgba(23, 32, 52, 0.92);
+  --line: rgba(255,255,255,.12);
+  --text: #f8fbff;
+  --muted: #9aa8bb;
+  --green: #3af27c;
+  --gold: #c9b46a;
+  --purple: #7d5cff;
+  --danger: #ff4d5e;
+  --warning: #ffb020;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: radial-gradient(circle at top left, rgba(125,92,255,.25), transparent 30%), radial-gradient(circle at top right, rgba(58,242,124,.18), transparent 26%), var(--bg); color: var(--text); }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+.appShell { min-height: 100vh; display: grid; grid-template-columns: 300px 1fr; }
+.sidebar { padding: 22px; border-right: 1px solid var(--line); background: rgba(3, 7, 14, .76); backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 18px; }
+.brandBlock { display: flex; gap: 12px; align-items: center; }
+.brandIcon { width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; background: linear-gradient(135deg, var(--green), var(--purple)); color: #06100a; font-weight: 900; box-shadow: 0 0 30px rgba(58,242,124,.25); }
+.brandBlock strong { display:block; } .brandBlock span, small, .muted { color: var(--muted); }
+nav { display: grid; gap: 10px; }
+nav button, .resetButton { width: 100%; border: 1px solid var(--line); color: var(--text); background: rgba(255,255,255,.04); border-radius: 14px; padding: 12px 14px; display:flex; align-items:center; gap: 10px; }
+nav button.active, nav button:hover { border-color: rgba(58,242,124,.55); background: rgba(58,242,124,.12); }
+.sideCard, .panel, .heroPanel { border: 1px solid var(--line); background: var(--panel); border-radius: 24px; padding: 20px; box-shadow: 0 16px 60px rgba(0,0,0,.25); }
+.sideCard { display:grid; gap: 4px; margin-top:auto; }
+.content { padding: 24px; overflow: auto; }
+.topBar { display:flex; justify-content:space-between; align-items:flex-start; gap: 20px; margin-bottom: 22px; }
+h1, h2, p { margin-top: 0; } h1 { font-size: clamp(30px, 4vw, 54px); line-height: .95; margin-bottom: 8px; } h2 { margin-bottom: 8px; }
+.eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: .12em; font-size: 12px; font-weight: 800; margin-bottom: 8px; }
+.topBadges, .heroActions, .navActions { display:flex; gap: 10px; flex-wrap: wrap; }
+.badge { display:inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 7px 10px; color: var(--muted); background: rgba(255,255,255,.05); font-size: 12px; font-weight:700; }
+.badge.green { color: var(--green); border-color: rgba(58,242,124,.35); } .badge.purple { color: #d7ceff; border-color: rgba(125,92,255,.4); }
+.pageGrid { display:grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: 18px; align-items:start; }
+.heroPanel { min-height: 260px; display:flex; flex-direction:column; justify-content:flex-end; background: linear-gradient(135deg, rgba(125,92,255,.25), rgba(58,242,124,.08)), var(--panel); }
+.panelHeader { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom: 16px; }
+.formGrid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.field { display:grid; gap: 7px; margin-bottom: 12px; }
+.field span { font-weight: 800; color: #eaf1ff; }
+.field input, .field select { width:100%; border: 1px solid var(--line); border-radius: 13px; padding: 12px; color: var(--text); background: rgba(0,0,0,.22); }
+.field input[type='checkbox'] { width: 24px; height: 24px; }
+.field small { line-height: 1.35; }
+.required { color: var(--warning); font-size: 11px; margin-left: 4px; } .critical { color: var(--green); font-size: 11px; margin-left: 4px; }
+.primary, .ghost, .dangerButton { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; color: var(--text); background: rgba(255,255,255,.06); display:inline-flex; align-items:center; gap: 8px; }
+.primary { color: #06100a; background: linear-gradient(135deg, var(--green), #a8ffca); border: 0; font-weight: 900; }
+.dangerButton { background: rgba(255,77,94,.15); border-color: rgba(255,77,94,.35); color: #ffd5da; }
+.scoreCard { display:flex; justify-content:space-between; align-items:center; gap: 16px; border:1px solid var(--line); border-radius: 20px; padding: 18px; margin-bottom: 14px; background: rgba(0,0,0,.18); }
+.score { font-size: 52px; font-weight: 950; color: var(--green); line-height: 1; }
+.status { border-radius: 999px; padding: 8px 12px; background: rgba(255,255,255,.08); text-transform: capitalize; }
+.status.high_risk, .status.blocked { color: #ffd5da; } .status.needs_review { color: #ffe2a7; } .status.appears_suitable { color: var(--green); }
+.warningList { display:grid; gap: 10px; }
+.warning { border:1px solid var(--line); border-left-width: 5px; border-radius: 16px; padding: 12px; background: rgba(255,255,255,.04); }
+.warning p { color: var(--muted); margin-bottom:0; } .warning.warning { border-left-color: var(--warning); } .warning.danger { border-left-color: var(--danger); } .warning.info { border-left-color: var(--purple); }
+.evidenceGrid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 14px; }
+.evidence { border:1px solid var(--line); border-radius: 14px; padding: 10px; } .evidence span { display:block; color: var(--muted); font-size:12px; }
+.disclaimer { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 14px; margin-bottom:0; }
+.navigationPage { display:grid; gap: 12px; }
+.navShell { position:relative; height: calc(100vh - 150px); min-height: 650px; border:1px solid var(--line); border-radius: 28px; overflow:hidden; background:#08111f; }
+.fakeMap3d { position:absolute; inset:0; overflow:hidden; background: linear-gradient(180deg, #102044, #09101b 45%, #0b1118); perspective: 900px; }
+.mapSkyline { position:absolute; inset: 12% -20% -12%; background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 2px, transparent 2px 90px), repeating-linear-gradient(0deg, rgba(58,242,124,.09) 0 2px, transparent 2px 80px); transform: rotateX(62deg); transform-origin:center bottom; }
+.routeSvg { position:absolute; inset:0; width:100%; height:100%; filter: drop-shadow(0 0 16px rgba(58,242,124,.55)); }
+.routeShadow, .routeLine { fill:none; stroke-linecap:round; }
+.routeShadow { stroke: rgba(0,0,0,.55); stroke-width: 24; } .routeLine { stroke: var(--green); stroke-width: 12; stroke-dasharray: 26 14; animation: dash 2s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -40; } }
+.vehicleMarker { position:absolute; left:50%; bottom: 72px; translate:-50% 0; width:64px; height:64px; border-radius:24px; display:grid; place-items:center; background: linear-gradient(135deg, var(--green), var(--purple)); color:#06100a; box-shadow: 0 0 30px rgba(58,242,124,.5); }
+.restrictionPin { position:absolute; right: 18%; top: 34%; padding: 10px 12px; border-radius: 999px; background: rgba(255,176,32,.16); border:1px solid rgba(255,176,32,.45); display:flex; gap: 8px; align-items:center; color:#ffe4b2; }
+.mapBadge { position:absolute; padding: 9px 12px; border-radius:999px; background: rgba(0,0,0,.38); border:1px solid var(--line); font-weight:800; } .topLeft { top:18px; left:18px; } .topRight { top:18px; right:18px; }
+.navInstructionCard { position:absolute; left:18px; right:18px; bottom:18px; border:1px solid var(--line); border-radius: 24px; padding: 18px; background: rgba(5,9,16,.82); backdrop-filter: blur(18px); display:flex; justify-content:space-between; gap: 16px; align-items:center; }
+.navControlBar { display:flex; align-items:center; gap: 10px; flex-wrap:wrap; }
+@media (max-width: 980px) { .appShell { grid-template-columns: 1fr; } .sidebar { position: static; } .pageGrid { grid-template-columns: 1fr; } .topBar, .navInstructionCard { flex-direction:column; } .formGrid { grid-template-columns: 1fr; } .navShell { min-height: 560px; } }
+
+/* ─── Extensions added by finish-off build ─────────────────────────────── */
+
+/* Layout columns */
+.leftCol, .rightCol { display: grid; gap: 18px; align-content: start; }
+.pageGrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .pageGrid { grid-template-columns: 1fr; } .leftCol, .rightCol { gap: 14px; } }
+
+/* Status banners */
+.statusBanner { display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 12px 14px; font-size: 13px; font-weight: 600; margin-top: 10px; border: 1px solid var(--line); }
+.statusBanner.loading { background: rgba(125,92,255,.12); border-color: rgba(125,92,255,.35); color: #d7ceff; }
+.statusBanner.error { background: rgba(255,77,94,.12); border-color: rgba(255,77,94,.35); color: #ffd5da; }
+.statusBanner.success { background: rgba(58,242,124,.1); border-color: rgba(58,242,124,.35); color: var(--green); }
+.statusBanner.demo { background: rgba(255,176,32,.1); border-color: rgba(255,176,32,.35); color: #ffe4b2; }
+
+/* Spin animation for loader */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
+/* Danger badge */
+.badge.danger { color: #ffd5da; border-color: rgba(255,77,94,.35); background: rgba(255,77,94,.1); }
+
+/* Trip / Route summary panel */
+.tripPanel { margin-top: 0; }
+.routeSummaryPanel { }
+.summaryGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+.summaryItem { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: rgba(0,0,0,.18); }
+.summaryItem span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.summaryItem strong { font-size: 15px; }
+
+/* Turn instruction list */
+.instructionsList { display: grid; gap: 6px; margin-top: 8px; }
+.instructionItem { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(0,0,0,.14); font-size: 13px; }
+.instrIcon { font-size: 18px; min-width: 24px; text-align: center; }
+.instrText { flex: 1; color: var(--text); }
+.instrDist { color: var(--muted); white-space: nowrap; }
+
+/* Navigation map — extended */
+.navShell { position: relative; height: calc(100vh - 170px); min-height: 580px; border: 1px solid var(--line); border-radius: 28px; overflow: hidden; background: #08111f; }
+.fakeMap3d { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg, #102044, #09101b 45%, #0b1118); perspective: 900px; }
+.routeSvg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 18px rgba(58,242,124,.6)); }
+
+/* Navigation control bar */
+.navControlBar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 4px; }
+
+/* Safety disclaimer overlay */
+.disclaimerOverlay { position: fixed; inset: 0; background: rgba(7,11,18,.92); backdrop-filter: blur(16px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.disclaimerCard { max-width: 560px; width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 28px; padding: 32px; display: grid; gap: 16px; }
+.disclaimerIcon { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, var(--green), var(--purple)); display: grid; place-items: center; color: #06100a; }
+.disclaimerBody { display: grid; gap: 12px; }
+.disclaimerBody p { margin: 0; line-height: 1.55; }
+.disclaimerBody ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.disclaimerWarning { display: flex; gap: 10px; align-items: flex-start; background: rgba(255,176,32,.1); border: 1px solid rgba(255,176,32,.35); border-radius: 14px; padding: 12px; color: #ffe4b2; }
+.disclaimerWarning p { margin: 0; font-size: 14px; line-height: 1.45; }
+
+/* Settings / saved trips pages */
+.settingsPage { display: grid; gap: 0; }
+
+/* Reset button */
+.resetButton { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid var(--line); color: var(--muted); background: rgba(255,255,255,.03); border-radius: 14px; padding: 10px 14px; font-size: 13px; margin-top: auto; }
+.resetButton:hover { border-color: var(--danger); color: #ffd5da; }
+
+/* Pre-formatted env block */
+pre code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
+
+/* ─── MapLibre GL container ─────────────────────────────────────────────── */
+.maplibreContainer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.maplibreContainer .maplibregl-canvas { border-radius: 28px; }
+.maplibre-vehicle-marker { cursor: default; pointer-events: none; filter: drop-shadow(0 0 12px rgba(58,242,124,.7)); }
+.map-warning-pin { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,176,32,.2); border: 2px solid rgba(255,176,32,.7); display: grid; place-items: center; font-size: 15px; cursor: default; }
+.mapLoadingOverlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 14px; z-index: 5; pointer-events: none; }
+.mapLoadingDot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.7); } }
+
+/* ─── Toggle switch ─────────────────────────────────────────────────────── */
+.toggleSwitch { position: relative; display: inline-flex; align-items: center; gap: 8px; width: 80px; height: 38px; border-radius: 999px; border: 2px solid var(--line); background: rgba(255,255,255,.06); padding: 3px 10px 3px 3px; cursor: pointer; transition: background .2s, border-color .2s; user-select: none; flex-shrink: 0; }
+.toggleSwitch.on { background: rgba(58,242,124,.18); border-color: rgba(58,242,124,.5); }
+.toggleSwitch.off { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); }
+.toggleThumb { display: block; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; flex-shrink: 0; }
+.toggleSwitch.on .toggleThumb { transform: translateX(34px); background: var(--green); }
+.toggleSwitch.off .toggleThumb { transform: translateX(0); }
+.toggleLabel { position: absolute; right: 10px; font-size: 11px; font-weight: 800; color: var(--muted); pointer-events: none; }
+.toggleSwitch.on .toggleLabel { color: var(--green); right: auto; left: 10px; }
+
+/* ─── Settings sections ─────────────────────────────────────────────────── */
+.settingsSection { max-width: 660px; margin-bottom: 18px; }
+.settingsSectionHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.toggleRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.toggleRow:last-of-type { border-bottom: none; }
+
+/* ─── CSV summary grid ──────────────────────────────────────────────────── */
+.csvSummaryGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.csvSummaryItem { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: rgba(0,0,0,.18); }
+.csvSummaryItem span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.csvSummaryItem strong { font-size: 22px; font-weight: 900; }
+
+/* ─── maplibre-gl CSS import marker ────────────────────────────────────── */
+/* maplibre-gl styles are imported via JS — see NavigationMapShell.jsx */
+
+/* ─── API status panel ──────────────────────────────────────────────────── */
+.apiStatusPanel { border-left: 4px solid var(--warning); background: rgba(255,176,32,.07); margin-bottom: 16px; }
+.apiStatusPanel code { background: rgba(255,255,255,.08); border-radius: 6px; padding: 1px 5px; font-size: 12px; }
+
+/* ─── Nav status badges ─────────────────────────────────────────────────── */
+.navStatusBadges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: auto; }
+
+/* ─── Map setup required state ──────────────────────────────────────────── */
+.mapSetupRequired {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 24px; background: rgba(7,11,18,.92); z-index: 20;
+}
+.mapSetupRequired h3 { font-size: 20px; margin-bottom: 10px; }
+.mapSetupRequired p  { color: var(--muted); font-size: 14px; max-width: 400px; line-height: 1.5; }
+.mapSetupRequired code { background: rgba(255,255,255,.08); border-radius: 6px; padding: 2px 6px; font-size: 12px; }
+
+/* ─── Warning status banner ─────────────────────────────────────────────── */
+.statusBanner.warning {
+  background: rgba(255,176,32,.12);
+  border: 1px solid rgba(255,176,32,.35);
+  color: var(--warning);
+}
+
+/* ─── Brand credit (sidebar footer) ────────────────────────────────────── */
+.brandCredit {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 14px; margin-top: auto;
+  border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 11px; opacity: 0.7;
+}
+.brandCredit span { white-space: nowrap; }
+
+/* ─── About / settings panel ────────────────────────────────────────────── */
+.aboutPanel { text-align: center; padding: 24px 20px; }
+.aboutPanel code { background: rgba(255,255,255,.08); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4P3X SPECIALIST AGENT SUITE PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.agentPanel { margin-top: 0; }
+.agentPanel h3 { font-size: 14px; font-weight: 600; }
+
+.agentPanelHeader {
+  display: flex; align-items: flex-start; gap: 12;
+  justify-content: space-between; cursor: pointer;
+  padding-bottom: 6px;
+}
+
+.agentPanelBody { padding-top: 12px; }
+
+/* ── Agent messages ──────────────────────────────────────────────────────── */
+.agentMessage {
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+  border-left: 3px solid transparent;
+}
+.agentMessage strong { display: block; font-size: 13px; margin-bottom: 3px; }
+.agentMessage p      { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.45; }
+.agentMessage.critical { background: rgba(220,53,69,.1); border-color: var(--danger); }
+.agentMessage.warning  { background: rgba(255,176,32,.08); border-color: var(--warning); }
+.agentMessage.caution  { background: rgba(58,130,180,.08); border-color: rgba(58,130,180,.6); }
+.agentMessage.info     { background: rgba(255,255,255,.03); border-color: var(--line); }
+.agentMessage.clear    { background: rgba(58,242,124,.07); border-color: var(--green); }
+
+/* ── Score grid ──────────────────────────────────────────────────────────── */
+.agentScoreGrid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  margin: 12px 0;
+}
+.agentScoreItem {
+  background: rgba(255,255,255,.04); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.agentScoreItem span  { font-size: 11px; color: var(--muted); }
+.agentScoreItem strong { font-size: 18px; font-weight: 800; }
+
+/* ── Agent status list ───────────────────────────────────────────────────── */
+.agentStatusList { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.agentStatusRow  { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+
+.agentStatusHeader {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; border: none; border-radius: 0;
+  background: rgba(255,255,255,.02); text-align: left; cursor: pointer;
+  transition: background 0.15s;
+}
+.agentStatusHeader:hover { background: rgba(255,255,255,.05); }
+
+.agentFindingsList {
+  list-style: none; padding: 0 12px 10px; margin: 0;
+  border-top: 1px solid var(--line);
+}
+.agentFinding {
+  padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.agentFinding:last-child { border-bottom: none; }
+.agentFinding strong { font-size: 12px; display: block; margin-bottom: 2px; }
+.agentFinding p      { font-size: 11px; color: var(--muted); margin: 0; line-height: 1.4; }
+.agentFinding.critical strong { color: var(--danger); }
+.agentFinding.warning  strong { color: var(--warning); }
+.agentFinding.info     strong { color: var(--muted); }
+
+/* ── Readiness checklist ─────────────────────────────────────────────────── */
+.readinessChecklist {
+  list-style: none; padding: 0; margin: 8px 0 0;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.readinessItem {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 12px;
+}
+.readinessItem:last-child { border-bottom: none; }
+.readinessItem strong { display: block; font-size: 12px; }
+.readinessItem p      { font-size: 11px; color: var(--muted); margin: 2px 0 0; }
+.readinessItem.passed strong { color: var(--green); }
+.readinessItem.blocked strong { color: var(--danger); }
+.readinessItem.missing strong { color: var(--warning); }
+
+/* ── Action list ─────────────────────────────────────────────────────────── */
+.agentActionList {
+  list-style: none; padding: 0; margin: 6px 0 0;
+}
+.agentActionItem {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 12px; color: var(--muted); padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.agentActionItem:last-child { border-bottom: none; }
+
+/* ── Restriction conflict list ───────────────────────────────────────────── */
+.restrictionConflictList {
+  border: 1px solid rgba(220,53,69,.3); border-radius: 10px;
+  padding: 12px; margin-top: 12px;
+  background: rgba(220,53,69,.06);
+}
+.restrictionConflictItem {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.restrictionConflictItem:last-child { border-bottom: none; }
+
+/* ── badge colours ───────────────────────────────────────────────────────── */
+.badge.warning { color: var(--warning); border-color: rgba(255,176,32,.35); }
+.badge.danger  { color: var(--danger);  border-color: rgba(220,53,69,.35);  }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GPS / NAVIGATION WIRING — v2.1
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Off-route badge */
+.offRouteBadge {
+  background: rgba(220, 53, 69, .18) !important;
+  border-color: rgba(220, 53, 69, .6) !important;
+  color: var(--danger) !important;
+  animation: pulse-danger 1.5s ease-in-out infinite;
+}
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+/* Stale GPS badge */
+.staleBadge { color: var(--warning) !important; }
+
+/* Reroute prompt */
+.reroutePrompt {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  top: 70px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  min-width: 280px; max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  flex-wrap: wrap;
+}
+
+/* Navigation warnings drawer */
+.navWarningsDrawer {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: 100px;
+  background: var(--surface);
+  border: 1px solid rgba(255,176,32,.35);
+  border-radius: 12px;
+  padding: 10px;
+  min-width: 260px; max-width: 380px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.navWarningItem {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  color: var(--muted);
+}
+.navWarningItem:last-child { border-bottom: none; }
+.navWarningItem.warning { color: var(--warning); }
+.navWarningItem.critical { color: var(--danger); }
+
+/* Map recenter button */
+.mapRecenterBtn {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+.mapRecenterBtn:hover { background: rgba(255,255,255,.1); color: var(--fg); }
+
+/* Warning toggle badge */
+.warningToggle {
+  cursor: pointer;
+  background: rgba(255,176,32,.1) !important;
+  border-color: rgba(255,176,32,.35) !important;
+}
+
+/* Voice enabled indicator */
+.voiceEnabled { color: var(--green) !important; }
+
+/* Spin animation for rerouting icon */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SERVICE SETTINGS PANEL — v2.2
+   Big V's Best Routes™ — Powered by 4P3X Intelligent AI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Settings panel wrap ─────────────────────────────────────────────────── */
+.settingsPanelWrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.settingsPanelHeader {
+  padding: 20px 20px 0;
+  margin-bottom: 4px;
+}
+.settingsPanelTitle {
+  font-size: clamp(18px, 3.5vw, 24px);
+  font-weight: 800;
+  color: var(--fg);
+  margin: 0 0 6px;
+  letter-spacing: -.3px;
+}
+.settingsPanelSubtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+.settingsBrand {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+/* ── Fallback warning banner ─────────────────────────────────────────────── */
+.fallbackWarningBanner {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(255,176,32,.1);
+  border: 1px solid rgba(255,176,32,.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--warning);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+/* ── Section layout ──────────────────────────────────────────────────────── */
+.settingsSection {
+  padding: 16px 20px 0;
+}
+.settingsSectionTitle {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 15px; font-weight: 700;
+  color: var(--fg); margin: 0 0 6px;
+}
+.settingsSectionDesc {
+  font-size: 12px; color: var(--muted);
+  margin: 0 0 12px; line-height: 1.5;
+}
+.settingsCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.legacySection { margin-top: 8px; }
+
+/* ── Service card (collapsible) ──────────────────────────────────────────── */
+.serviceCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.serviceCard.cardFailed  { border-color: rgba(220,53,69,.4); }
+.serviceCard.cardSuccess { border-color: rgba(58,242,124,.3); }
+
+.serviceCardHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; width: 100%; text-align: left;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--fg);
+}
+.serviceCardHeader:hover { background: rgba(255,255,255,.04); }
+.serviceCardTitle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600;
+}
+.serviceCardHeaderRight {
+  display: flex; align-items: center; gap: 8px;
+}
+.serviceCardBody {
+  padding: 4px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+.serviceCardActions {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; flex-wrap: wrap;
+}
+
+/* ── Settings fields ─────────────────────────────────────────────────────── */
+.settingsField { margin-bottom: 14px; }
+.settingsField:last-child { margin-bottom: 0; }
+.settingsLabel {
+  display: block;
+  font-size: 12px; font-weight: 600;
+  color: var(--muted); margin-bottom: 5px; letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.requiredMark { color: var(--danger); margin-left: 3px; }
+.settingsInput {
+  width: 100%; padding: 9px 12px;
+  background: rgba(0,0,0,.25);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--fg); font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.settingsInput:focus { border-color: var(--green); }
+.settingsInput.inputError { border-color: var(--danger); }
+.settingsSelect { appearance: none; cursor: pointer; }
+.settingsHint {
+  font-size: 11px; color: var(--muted);
+  margin: 4px 0 0; line-height: 1.4;
+}
+.settingsError {
+  font-size: 12px; color: var(--danger);
+  margin: 4px 0 0; display: flex; align-items: center; gap: 4px;
+}
+.settingsSuccess {
+  font-size: 12px; color: var(--green);
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 8px;
+}
+
+/* ── Toggle ──────────────────────────────────────────────────────────────── */
+.toggleRow {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px;
+}
+.toggleLabel { flex: 1; margin-bottom: 0 !important; }
+.toggleHint {
+  display: block; text-transform: none;
+  letter-spacing: 0; font-weight: 400;
+  margin-top: 2px;
+}
+.toggleBtn {
+  display: flex; align-items: center; gap: 5px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--muted); padding: 2px 0; font-size: 13px;
+  flex-shrink: 0;
+}
+.toggleBtn.toggleOn { color: var(--green); }
+.toggleBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── API key input ───────────────────────────────────────────────────────── */
+.apiKeyDisplay {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.maskedKey {
+  font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 13px; color: var(--fg);
+  background: rgba(0,0,0,.2);
+  padding: 5px 10px; border-radius: 6px;
+  letter-spacing: 1px; flex: 1; min-width: 140px;
+}
+.apiKeyInputRow {
+  display: flex; align-items: center; gap: 6px;
+}
+.apiKeyInputRow .settingsInput { flex: 1; }
+.ghost.icon {
+  padding: 8px; background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center;
+}
+.ghost.icon:hover { background: rgba(255,255,255,.08); }
+.ghost.small { padding: 6px 10px; font-size: 12px; }
+.ghost.small.danger { color: var(--danger); border-color: rgba(220,53,69,.35); }
+.primary.small { padding: 6px 12px; font-size: 12px; }
+
+/* ── Provider status badge ───────────────────────────────────────────────── */
+.providerBadge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; padding: 3px 7px; border-radius: 20px;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.badge-success  { background: rgba(58,242,124,.12); border-color: rgba(58,242,124,.35); color: var(--green); }
+.badge-failed   { background: rgba(220,53,69,.12);  border-color: rgba(220,53,69,.35);  color: var(--danger); }
+.badge-untested { background: rgba(255,255,255,.06); border-color: var(--line);           color: var(--muted); }
+.badge-testing  { background: rgba(58,130,246,.12); border-color: rgba(58,130,246,.35); color: #5ba4fd; animation: pulse-blue .8s ease-in-out infinite; }
+.badge-fallback { background: rgba(255,176,32,.12); border-color: rgba(255,176,32,.35); color: var(--warning); }
+@keyframes pulse-blue { 0%,100%{opacity:1} 50%{opacity:.6} }
+.badgeTs { font-size: 10px; opacity: .7; margin-left: 2px; }
+.fallbackActiveBadge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--warning); background: rgba(255,176,32,.1);
+  border: 1px solid rgba(255,176,32,.3); border-radius: 20px;
+  padding: 2px 7px;
+}
+
+/* ── Test result block ───────────────────────────────────────────────────── */
+.testResultBlock {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; padding: 8px 10px; border-radius: 8px;
+  margin-top: 10px; line-height: 1.4;
+}
+.testOk   { background: rgba(58,242,124,.09); color: var(--green); border: 1px solid rgba(58,242,124,.25); }
+.testFail { background: rgba(220,53,69,.09);  color: var(--danger); border: 1px solid rgba(220,53,69,.25); }
+.testFallbackNote { font-size: 11px; opacity: .8; margin-left: 4px; }
+
+/* ── Info boxes ─────────────────────────────────────────────────────────── */
+.settingsInfoBox {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; color: var(--muted);
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 12px;
+  margin-top: 10px; line-height: 1.5;
+}
+.settingsInfoBox.warning {
+  color: var(--warning);
+  background: rgba(255,176,32,.08);
+  border-color: rgba(255,176,32,.3);
+}
+.settingsInfoBox.complianceNotice {
+  color: var(--muted); font-style: italic;
+}
+
+/* ── Compliance feature list ─────────────────────────────────────────────── */
+.complianceFeatureList {
+  list-style: none; padding: 0; margin: 10px 0 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px;
+}
+.complianceFeatureList li {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted);
+}
+
+/* ── Service health grid ─────────────────────────────────────────────────── */
+.serviceHealthGrid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 400px) { .serviceHealthGrid { grid-template-columns: 1fr; } }
+.serviceHealthItem {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.serviceHealthLabel {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.serviceHealthFallback {
+  font-size: 11px; color: var(--warning); opacity: .8;
+}
+
+/* ── Demo mode section ───────────────────────────────────────────────────── */
+.demoModeSection .settingsCard,
+.demoModeSection > div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px;
+}
+
+/* ── Reset section ───────────────────────────────────────────────────────── */
+.resetSection { padding-bottom: 8px; }
+.ghost.danger { color: var(--danger); border-color: rgba(220,53,69,.35); }
+.ghost.danger:hover { background: rgba(220,53,69,.1); }
+
+/* ── Global action bar ───────────────────────────────────────────────────── */
+.settingsActionBar {
+  position: sticky; bottom: 0;
+  display: flex; gap: 10px; flex-wrap: wrap;
+  background: var(--bg); border-top: 1px solid var(--line);
+  padding: 12px 20px; z-index: 20;
+}
+
+/* ── Restriction stats ───────────────────────────────────────────────────── */
+.restrictionStats {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  font-size: 13px; color: var(--muted); margin-bottom: 12px;
+}
+.restrictionSource { font-size: 11px; }
+.csvActions { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.csvStatusMsg {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 7px 10px;
+  border-radius: 8px; margin-top: 8px;
+}
+
+/* ── Unit toggle ─────────────────────────────────────────────────────────── */
+.unitToggle { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.unitBtn {
+  padding: 7px 14px; font-size: 12px; background: transparent;
+  border: none; color: var(--muted); cursor: pointer;
+}
+.unitBtn.active { background: var(--green); color: #000; font-weight: 600; }
+
+/* ── Settings footer ─────────────────────────────────────────────────────── */
+.settingsFooter {
+  padding: 16px 20px;
+  font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--line);
+  line-height: 1.5; text-align: center;
+}
+
+/* ── Mobile tweaks ───────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .settingsPanelWrap  { padding: 0 0 60px; }
+  .settingsSection    { padding: 12px 14px 0; }
+  .serviceCardHeader  { padding: 11px 12px; }
+  .serviceCardBody    { padding: 4px 12px 12px; }
+  .toggleRow          { flex-direction: row; }
+  .complianceFeatureList { grid-template-columns: 1fr; }
+  .settingsActionBar  { padding: 10px 14px; }
+  .apiKeyInputRow     { flex-wrap: wrap; }
+  .apiKeyInputRow .settingsInput { min-width: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRIVER NAVIGATION PANELS — v2.3
+   Big V's Best Routes™ — Powered by 4P3X Intelligent AI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── GPS Status Panel ────────────────────────────────────────────────────── */
+.gpsStatusPanel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 0 0 10px;
+}
+.gpsStatusPanel.gpsActive  { border-color: rgba(58,242,124,.35); }
+.gpsStatusPanel.gpsWarn    { border-color: rgba(255,176,32,.4); }
+.gpsStatusPanel.gpsError   { border-color: rgba(220,53,69,.4); }
+.gpsStatusPanel.gpsPending { border-color: rgba(91,164,253,.35); }
+
+.gpsPanelHeader {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 8px;
+  margin-bottom: 10px;
+}
+.gpsPanelTitle {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 600; color: var(--fg);
+}
+.gpsStatusPill {
+  font-size: 11px; padding: 2px 8px;
+  border-radius: 20px; border: 1px solid transparent;
+}
+.gpsStatusPill.gpsActive  { background: rgba(58,242,124,.12); border-color: rgba(58,242,124,.35); color: var(--green); }
+.gpsStatusPill.gpsWarn    { background: rgba(255,176,32,.12);  border-color: rgba(255,176,32,.35);  color: var(--warning); }
+.gpsStatusPill.gpsError   { background: rgba(220,53,69,.12);   border-color: rgba(220,53,69,.35);   color: var(--danger); }
+.gpsStatusPill.gpsPending { background: rgba(91,164,253,.12);  border-color: rgba(91,164,253,.35);  color: #5ba4fd; }
+.gpsStatusPill.gpsIdle    { background: rgba(255,255,255,.07); border-color: var(--line);            color: var(--muted); }
+
+.gpsControlBtns { display: flex; gap: 7px; flex-shrink: 0; }
+
+/* GPS stats grid */
+.gpsStatsGrid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 8px;
+}
+.gpsStat {
+  background: rgba(0,0,0,.2); border-radius: 9px;
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;
+}
+.gpsStat.gpsStatWarn { border: 1px solid rgba(255,176,32,.35); }
+.gpsStatLabel { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.gpsStatValue { font-size: 14px; font-weight: 700; color: var(--fg); }
+.gpsStatSub   { font-size: 11px; color: var(--muted); font-weight: 400; }
+.gpsStatFlag  { font-size: 11px; color: var(--warning); font-weight: 600; }
+
+/* GPS alerts */
+.gpsAlertBox {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; padding: 8px 10px; border-radius: 9px;
+  line-height: 1.5; margin-top: 8px;
+}
+.gpsAlertError { background: rgba(220,53,69,.1); color: var(--danger); border: 1px solid rgba(220,53,69,.3); }
+.gpsAlertWarn  { background: rgba(255,176,32,.1); color: var(--warning); border: 1px solid rgba(255,176,32,.3); }
+
+/* Compact GPS badge */
+.gpsCompactBadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--line); color: var(--muted);
+}
+.gpsCompactBadge.gpsActive  { color: var(--green);   border-color: rgba(58,242,124,.4); background: rgba(58,242,124,.08); }
+.gpsCompactBadge.gpsWarn    { color: var(--warning);  border-color: rgba(255,176,32,.4); background: rgba(255,176,32,.08); }
+.gpsCompactBadge.gpsError   { color: var(--danger);   border-color: rgba(220,53,69,.4);  background: rgba(220,53,69,.08); }
+.gpsCompactBadge.gpsPending { color: #5ba4fd;          border-color: rgba(91,164,253,.4); background: rgba(91,164,253,.08); }
+.gpsAccBadge { font-size: 11px; opacity: .75; }
+
+/* ── Route Progress Panel ─────────────────────────────────────────────────── */
+.routeProgressPanel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 0 0 10px;
+}
+.rpProgressRow {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.rpProgressBar {
+  flex: 1; height: 7px; background: rgba(255,255,255,.08);
+  border-radius: 20px; overflow: hidden;
+}
+.rpProgressFill {
+  height: 100%; background: var(--green);
+  border-radius: 20px; transition: width .4s ease;
+}
+.rpProgressPct { font-size: 12px; font-weight: 700; color: var(--green); white-space: nowrap; }
+
+.rpStatsRow {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px;
+}
+.rpStat {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted);
+}
+
+.rpInstruction {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(58,242,124,.1); border: 1px solid rgba(58,242,124,.25);
+  border-radius: 10px; padding: 9px 12px;
+  font-size: 14px; font-weight: 600; color: var(--fg);
+  margin-bottom: 8px;
+}
+
+/* Off-route warning */
+.rpOffRoute {
+  display: flex; align-items: flex-start; gap: 9px;
+  background: rgba(255,176,32,.12); border: 1px solid rgba(255,176,32,.4);
+  border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; color: var(--warning);
+  margin-bottom: 8px;
+}
+.rpOffRouteSubtext { font-size: 12px; opacity: .85; margin-top: 3px; }
+
+/* Reroute prompt */
+.rpReroutePrompt {
+  display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
+  background: rgba(91,164,253,.1); border: 1px solid rgba(91,164,253,.35);
+  border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; color: #5ba4fd; margin-bottom: 8px;
+}
+.rpReroutePrompt.calculating { color: var(--muted); background: rgba(255,255,255,.05); border-color: var(--line); }
+.rpReroutePrompt.proposed    { background: rgba(58,242,124,.09); border-color: rgba(58,242,124,.3); color: var(--green); }
+.rpReroutePrompt.error       { background: rgba(220,53,69,.1); border-color: rgba(220,53,69,.35); color: var(--danger); }
+.rpRerouteText  { flex: 1; }
+.rpRerouteBtns  { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-basis: 100%; }
+.rpRerouteHighRisk { font-size: 11px; color: var(--warning); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+.rpWarningsList { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.rpWarningItem {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 12px; color: var(--warning);
+  background: rgba(255,176,32,.07); border-radius: 7px;
+  padding: 6px 9px;
+}
+
+/* Compact progress */
+.routeProgressCompact { display: flex; align-items: center; gap: 8px; }
+.progressBarBg  { flex: 1; height: 5px; background: rgba(255,255,255,.1); border-radius: 10px; overflow: hidden; }
+.progressBarFill { height: 100%; background: var(--green); border-radius: 10px; transition: width .4s ease; }
+.progressCompactLabel { font-size: 11px; color: var(--green); font-weight: 700; white-space: nowrap; }
+
+/* ── Navigation Safety Panel ─────────────────────────────────────────────── */
+.navSafetyPanel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 0 0 10px;
+}
+.navSafetyHeader {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 600; color: var(--fg);
+  margin-bottom: 10px;
+}
+.navSafetyGpsBadge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--green);
+  background: rgba(58,242,124,.1); border-radius: 20px;
+  padding: 2px 7px; border: 1px solid rgba(58,242,124,.3);
+  margin-left: auto;
+}
+
+.navSafetyScore {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 9px; margin-bottom: 10px;
+  background: rgba(58,242,124,.1); border: 1px solid rgba(58,242,124,.25);
+}
+.navSafetyScore.scoreDanger { background: rgba(220,53,69,.1); border-color: rgba(220,53,69,.3); }
+.navSafetyScore.scoreWarn   { background: rgba(255,176,32,.1); border-color: rgba(255,176,32,.3); }
+.scorePct   { font-size: 22px; font-weight: 800; color: var(--fg); }
+.scoreLabel { font-size: 12px; color: var(--muted); text-transform: capitalize; }
+
+.navSafetyWarnList { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.navSafetyWarnItem {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; padding: 8px 10px; border-radius: 9px;
+  line-height: 1.5;
+}
+.compWarnDanger  { background: rgba(220,53,69,.1); color: var(--danger); border: 1px solid rgba(220,53,69,.25); }
+.compWarnWarning { background: rgba(255,176,32,.1); color: var(--warning); border: 1px solid rgba(255,176,32,.25); }
+.compWarnInfo    { background: rgba(91,164,253,.1); color: #5ba4fd; border: 1px solid rgba(91,164,253,.2); }
+.compWarnSuccess { background: rgba(58,242,124,.08); color: var(--green); border: 1px solid rgba(58,242,124,.2); }
+.warnTitle  { font-weight: 600; margin-bottom: 2px; }
+.warnDetail { opacity: .85; }
+
+.navSafetyOk {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--green); padding: 6px 0;
+}
+
+.navSafetyDisclaimer {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 11px; color: var(--muted); font-style: italic;
+  border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ── NavigationPWA page layout ───────────────────────────────────────────── */
+.navGpsPanelWrap { padding: 0 12px; }
+
+.navPanelToggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; background: transparent; border: none; cursor: pointer;
+  padding: 8px 0; color: var(--muted); gap: 8px;
+}
+.navPanelToggle:hover { color: var(--fg); }
+
+.navSafetyWrap { padding: 0 12px; }
+.navSafetyWrap.safetyHasAlert .safetyToggle { color: var(--danger); }
+
+.safetyToggle { border-top: 1px solid var(--line); padding-top: 8px; }
+.safetyToggleLabel { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+
+/* Off-route alert (top-level, high-visibility) */
+.navOffRouteAlert {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(255,100,0,.15); border: 2px solid rgba(255,100,0,.6);
+  border-radius: 12px; padding: 12px 16px;
+  font-size: 15px; font-weight: 700; color: #FF8C00;
+  margin: 0 12px 10px; animation: pulseOffRoute 1.2s ease-in-out infinite;
+}
+@keyframes pulseOffRoute {
+  0%,100% { border-color: rgba(255,100,0,.6); }
+  50%      { border-color: rgba(255,100,0,1);  }
+}
+.navOffRouteSubtext { font-size: 12px; font-weight: 400; margin-top: 3px; color: var(--warning); }
+
+/* Large nav buttons */
+.primary.large, button.primary.large {
+  padding: 13px 22px; font-size: 15px; font-weight: 700;
+  width: 100%; justify-content: center;
+}
+
+/* Advisory footer */
+.navAdvisoryFooter {
+  font-size: 11px; color: var(--muted); text-align: center;
+  padding: 10px 16px 20px; line-height: 1.5;
+}
+
+/* ── DriverPositionMarker overlay ─────────────────────────────────────────── */
+.driverMarkerWrap { pointer-events: none; }
+.driverAccuracyRing { pointer-events: none; transition: all .3s ease; }
+
+/* Spin animation for rerouting icon */
+.spinIcon { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ── Mobile nav panel tweaks ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .gpsStatsGrid { grid-template-columns: 1fr 1fr; }
+  .gpsStatValue { font-size: 13px; }
+  .rpInstruction { font-size: 13px; }
+  .navOffRouteAlert { font-size: 14px; margin: 0 8px 8px; }
+  .navGpsPanelWrap, .navSafetyWrap { padding: 0 8px; }
+  .navAdvisoryFooter { font-size: 10px; }
+}
