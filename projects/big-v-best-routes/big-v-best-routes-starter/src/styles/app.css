@@ -995,3 +995,104 @@ pre code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
   .navGpsPanelWrap, .navSafetyWrap { padding: 0 8px; }
   .navAdvisoryFooter { font-size: 10px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OSM MAP + ROUTE POLYLINE — v2.4
+   Big V's Best Routes™ — Powered by 4P3X Intelligent AI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Waypoint A/B markers ─────────────────────────────────────────────────── */
+.maplibre-waypoint-marker {
+  cursor: default;
+  pointer-events: none;
+}
+.waypoint-label {
+  width: 30px; height: 30px;
+  border-radius: 50% 50% 50% 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 900;
+  border: 2.5px solid rgba(0,0,0,0.55);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+  transform: rotate(-45deg);
+  position: relative;
+}
+.waypoint-label::after {
+  content: attr(class);  /* overridden per-marker */
+  transform: rotate(45deg);
+}
+.start-marker .waypoint-label {
+  background: #3af27c;
+  color: #06100a;
+  transform: rotate(-45deg);
+}
+.start-marker .waypoint-label::before {
+  content: 'A';
+  transform: rotate(45deg);
+  display: block;
+}
+.end-marker .waypoint-label {
+  background: #ff4444;
+  color: #fff;
+  transform: rotate(-45deg);
+}
+.end-marker .waypoint-label::before {
+  content: 'B';
+  transform: rotate(45deg);
+  display: block;
+}
+
+/* Fix: the label text was set via innerHTML — simplify */
+.maplibre-waypoint-marker .waypoint-label {
+  /* Reset — content set directly in DOM */
+}
+.start-marker { z-index: 5; }
+.end-marker   { z-index: 5; }
+
+/* ── OSM attribution badge ────────────────────────────────────────────────── */
+.osmFallbackBadge {
+  background: rgba(0,0,0,0.65) !important;
+  color: rgba(255,255,255,0.75) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  font-size: 10px !important;
+  padding: 4px 10px !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ── MapLibre container — always full-height in navigation shell ────────────── */
+.maplibreContainer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.navShell {
+  position: relative;
+  width: 100%;
+  /* height set by parent — .navigationPage */
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #0d1a0f;
+}
+
+/* ── Route line on OSM raster (brighter for visibility over raster tiles) ─── */
+/* These are applied via mapLibreAdapter paint props — CSS not needed */
+/* But we ensure the map container doesn't clip the badges */
+.navShell .mapBadge {
+  pointer-events: auto;
+}
+
+/* ── Map loading overlay ──────────────────────────────────────────────────── */
+.mapLoadingOverlay {
+  position: absolute; inset: 0; z-index: 8;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; font-size: 14px; color: var(--muted);
+  background: rgba(10,20,12,0.7);
+  backdrop-filter: blur(4px);
+}
+.mapLoadingDot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--green);
+  animation: loadPulse 1s ease-in-out infinite;
+}
+@keyframes loadPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }

@@ -20,12 +20,12 @@ import {
   ShieldAlert, CheckCircle, Repeat2,
 } from 'lucide-react';
 import {
-  loadMapLibre, createMap, setRouteLayer,
+  loadMapLibre, createMap, setRouteLayer, setStartEndMarkers, fitRouteBounds,
   moveVehicleMarker, followCamera, destroyMap,
 } from '../core/mapLibreAdapter.js';
 import {
   MAP_STYLE_CONFIGURED, MAP_STYLE_URL, MAP_STYLE_IS_FALLBACK,
-  MAP_DEFAULTS, NAV_CAMERA, OVERVIEW_CAMERA,
+  MAP_DEFAULTS, NAV_CAMERA, OVERVIEW_CAMERA, resolveMapStyle,
 } from '../config/mapConfig.js';
 import { polylineToSvgPoints, svgPointsToPath } from '../utils/polyline.js';
 import { formatDistance, formatDuration, formatETA } from '../utils/formatters.js';
@@ -45,6 +45,8 @@ export default function NavigationMapShell({
   const mapInstanceRef   = useRef(null);
   const mlRef            = useRef(null);
   const vehicleMarkerRef = useRef(null);
+  const startMarkerRef   = useRef(null);
+  const endMarkerRef     = useRef(null);
   const simTimerRef      = useRef(null);
   const animTimerRef     = useRef(null);
   const userPannedRef    = useRef(false);
@@ -56,6 +58,7 @@ export default function NavigationMapShell({
   const [animOffset,    setAnimOffset]    = useState(0);
   const [simProgress,   setSimProgress]   = useState(0);
   const [showWarnings,  setShowWarnings]  = useState(false);
+  const [osmFallback,   setOsmFallback]   = useState(false);  // true when using OSM raster tiles
 
   const isActive   = navigation.status === 'active';
   const isPaused   = navigation.status === 'paused';
@@ -92,11 +95,16 @@ export default function NavigationMapShell({
       if (!ml || cancelled) { setMapFailed(true); setMapError('MapLibre GL JS failed to load.'); return; }
       mlRef.current = ml;
       const startCenter = polyline[0] ? [polyline[0][1], polyline[0][0]] : MAP_DEFAULTS.center;
+      // Resolve style: uses VITE_MAP_STYLE_URL if set, else OSM raster (no key needed)
+      const customTileUrl = null; // serviceConfig?.mapping?.osmTileUrl if passed in future
+      const { style: resolvedStyle, isOsmFallback: usingOsmFallback } = resolveMapStyle(customTileUrl);
+      if (!cancelled) setOsmFallback(usingOsmFallback);
+
       const map = await createMap(mapContainerRef.current, {
-        style:  MAP_STYLE_URL,
+        style:  resolvedStyle,
         center: startCenter,
-        zoom:   polyline.length > 1 ? NAV_CAMERA.zoom : MAP_DEFAULTS.zoom,
-        pitch:  NAV_CAMERA.pitch,
+        zoom:   polyline.length > 1 ? 13 : MAP_DEFAULTS.zoom,
+        pitch:  polyline.length > 1 ? 20 : NAV_CAMERA.pitch,  // flat overview on load; 3D when navigating
       });
       if (!map || cancelled) { setMapFailed(true); setMapError('Map failed to initialise.'); return; }
       mapInstanceRef.current = map;
@@ -111,7 +119,12 @@ export default function NavigationMapShell({
 
       map.on('load', () => {
         if (cancelled) return;
-        if (polyline.length > 1) setRouteLayer(map, polyline);
+        if (polyline.length > 1) {
+          setRouteLayer(map, polyline);
+          setStartEndMarkers(map, mlRef.current, polyline, { start: startMarkerRef, end: endMarkerRef });
+          // Fit to full route bounds on initial load (flat view for overview)
+          fitRouteBounds(map, polyline, { pitch: 20, padding: 60, duration: 1200 });
+        }
         setMapReady(true);
         setMapError(null);
       });
@@ -138,8 +151,10 @@ export default function NavigationMapShell({
   useEffect(() => {
     if (mapReady && mapInstanceRef.current && polyline.length > 1) {
       setRouteLayer(mapInstanceRef.current, polyline);
+      setStartEndMarkers(mapInstanceRef.current, mlRef.current, polyline, { start: startMarkerRef, end: endMarkerRef });
+      fitRouteBounds(mapInstanceRef.current, polyline, { pitch: 20, padding: 60, duration: 1000 });
     }
-  }, [mapReady, polyline]);
+  }, [mapReady, polyline.length]);  // eslint-disable-line
 
   // ── SVG fallback animation ────────────────────────────────────────────────
   useEffect(() => {
@@ -214,33 +229,9 @@ export default function NavigationMapShell({
   const navWarnings = navigation.navigationWarnings || [];
   const isOffRoute  = navigation.offRouteStatus || false;
 
-  // ── Render: map style not configured ─────────────────────────────────────
-  if (!MAP_STYLE_CONFIGURED) {
-    return (
-      <section className="navShell">
-        <div className="mapSetupRequired">
-          <AlertCircle size={40} style={{ color: 'var(--warning)', marginBottom: 14 }} />
-          <h3>Map style not configured</h3>
-          <p>Set <code>VITE_MAP_STYLE_URL</code> in your <code>.env</code> file to enable the navigation map.</p>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 10 }}>
-            Options: MapTiler, Stadia Maps, or any MapLibre GL-compatible style URL.
-          </p>
-          <div style={{ marginTop: 20, width: '100%', maxWidth: 420 }}>
-            <NavInfoStrip route={route} remainDistM={remainDistM} remainDurMs={remainDurMs} instructionText={instrText} compliance={compliance} />
-          </div>
-        </div>
-        <NavInstructionCard
-          navigation={navigation} vehicle={vehicle}
-          remainDistM={remainDistM} remainDurMs={remainDurMs}
-          distToNext={distToNext}
-          instructionText={instrText} isDevFallback={isDevFallback}
-          voice={voice} onToggleVoice={onToggleVoice} onToggleMute={onToggleMute}
-          onRepeatInstruction={onRepeatInstruction}
-          onStop={onStop}
-        />
-      </section>
-    );
-  }
+  // ── MAP_STYLE_CONFIGURED guard removed — OSM raster is always available ─────
+  // The map always loads using resolveMapStyle() which falls back to OSM raster tiles.
+  // osmFallback=true means we're using public OSM tiles — show a notice but don't block.
 
   // ── Full map render ────────────────────────────────────────────────────────
   return (
@@ -298,10 +289,10 @@ export default function NavigationMapShell({
         </div>
       )}
 
-      {/* Dev map tiles indicator */}
-      {MAP_STYLE_IS_FALLBACK && mapReady && (
-        <div className="mapBadge" style={{ top: 58, left: '50%', transform: 'translateX(-50%)', fontSize: 11, zIndex: 10, color: 'var(--warning)' }}>
-          Dev map tiles — set VITE_MAP_STYLE_URL for production
+      {/* OSM raster fallback notice */}
+      {osmFallback && mapReady && (
+        <div className="mapBadge osmFallbackBadge" style={{ top: 58, left: '50%', transform: 'translateX(-50%)', fontSize: 11, zIndex: 10 }}>
+          🗺 OSM public tiles · © OpenStreetMap contributors
         </div>
       )}
 

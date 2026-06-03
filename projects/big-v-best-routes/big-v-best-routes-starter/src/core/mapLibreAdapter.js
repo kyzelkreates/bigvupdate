@@ -7,7 +7,7 @@
  * Style URL is read from mapConfig.js (which reads VITE_MAP_STYLE_URL env var).
  */
 
-import { MAP_ATTRIBUTION, MAP_LAYER_IDS } from '../config/mapConfig.js';
+import { MAP_ATTRIBUTION, MAP_LAYER_IDS, resolveMapStyle } from '../config/mapConfig.js';
 
 let maplibre = null;
 
@@ -34,12 +34,16 @@ export async function createMap(container, options = {}) {
   if (!ml || !container) return null;
 
   const {
-    style   = 'https://demotiles.maplibre.org/style.json',
+    style: rawStyle,
     center  = [-2.5879, 51.4545],
     zoom    = 13,
     pitch   = 55,
     bearing = 0,
+    customTileUrl,
   } = options;
+
+  // Always resolve the best available style — falls back to OSM raster if no env var
+  const { style, isOsmFallback } = resolveMapStyle(customTileUrl || (rawStyle !== 'https://demotiles.maplibre.org/style.json' ? rawStyle : null));
 
   try {
     const map = new ml.Map({
@@ -182,6 +186,71 @@ export function setWarningMarkers(map, ml, warnings) {
       console.warn('[mapLibreAdapter] setWarningMarkers error:', e.message);
     }
   });
+}
+
+/**
+ * Add or update start and end markers on the map.
+ * @param {Map}    map
+ * @param {object} ml - maplibre-gl module
+ * @param {Array}  polyline - [[lat, lng], ...]
+ * @param {object} markerRefs - { start: ref, end: ref }
+ */
+export function setStartEndMarkers(map, ml, polyline, markerRefs) {
+  if (!map || !ml || !polyline || polyline.length < 2) return;
+  try {
+    const startCoord = [polyline[0][1], polyline[0][0]];            // [lng, lat]
+    const endCoord   = [polyline[polyline.length - 1][1], polyline[polyline.length - 1][0]];
+
+    // Start marker — green circle with A
+    if (!markerRefs.start?.current) {
+      const el = document.createElement('div');
+      el.className   = 'maplibre-waypoint-marker start-marker';
+      el.innerHTML   = '<div class="waypoint-label">A</div>';
+      el.title       = 'Route start';
+      if (markerRefs.start) markerRefs.start.current = new ml.Marker({ element: el }).setLngLat(startCoord).addTo(map);
+    } else {
+      markerRefs.start.current.setLngLat(startCoord);
+    }
+
+    // End marker — red circle with B
+    if (!markerRefs.end?.current) {
+      const el = document.createElement('div');
+      el.className   = 'maplibre-waypoint-marker end-marker';
+      el.innerHTML   = '<div class="waypoint-label">B</div>';
+      el.title       = 'Route destination';
+      if (markerRefs.end) markerRefs.end.current = new ml.Marker({ element: el }).setLngLat(endCoord).addTo(map);
+    } else {
+      markerRefs.end.current.setLngLat(endCoord);
+    }
+  } catch (e) {
+    console.warn('[mapLibreAdapter] setStartEndMarkers error:', e.message);
+  }
+}
+
+/**
+ * Fit map to show full route with padding.
+ * @param {Map}   map
+ * @param {Array} polyline - [[lat, lng], ...]
+ * @param {object} opts    - { padding, pitch, duration }
+ */
+export function fitRouteBounds(map, polyline, opts = {}) {
+  if (!map || !polyline || polyline.length < 2) return;
+  try {
+    const lngs = polyline.map((p) => p[1]);
+    const lats  = polyline.map((p) => p[0]);
+    map.fitBounds(
+      [[Math.min(...lngs) - 0.01, Math.min(...lats) - 0.01],
+       [Math.max(...lngs) + 0.01, Math.max(...lats) + 0.01]],
+      {
+        padding:  opts.padding  || 50,
+        pitch:    opts.pitch    ?? 20,
+        duration: opts.duration ?? 1200,
+        maxZoom:  16,
+      },
+    );
+  } catch (e) {
+    console.warn('[mapLibreAdapter] fitRouteBounds error:', e.message);
+  }
 }
 
 /** Safely destroy map instance. */

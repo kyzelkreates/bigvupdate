@@ -70,3 +70,68 @@ export const MAP_LAYER_IDS = {
   restrictionSource: 'bv-restrictions',
   restrictionLayer: 'bv-restriction-points',
 };
+
+// ─── OSM Raster Style — no API key, always available ─────────────────────────
+
+/**
+ * Build a MapLibre GL style object using OSM raster tiles.
+ * No API key required. Uses the public OSM tile server.
+ *
+ * Suitable for use when VITE_MAP_STYLE_URL is not set.
+ * Attribution required by OSM tile usage policy.
+ *
+ * @param {string} [tileUrl] - Optional custom tile URL template ({z}/{x}/{y}.png)
+ * @returns {object} MapLibre GL style object
+ */
+export function buildOsmRasterStyle(tileUrl) {
+  const tiles = tileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  return {
+    version: 8,
+    name:    'OSM Raster',
+    sources: {
+      'osm-raster': {
+        type:        'raster',
+        tiles:       [tiles],
+        tileSize:    256,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>',
+        maxzoom:     19,
+      },
+    },
+    layers: [
+      {
+        id:     'osm-raster-layer',
+        type:   'raster',
+        source: 'osm-raster',
+        paint:  {
+          'raster-opacity':    1,
+          'raster-brightness-min': 0,
+          'raster-contrast':   0.1,
+          // Slight dark tint so our green route line pops on the map
+          'raster-brightness-max': 0.85,
+        },
+      },
+    ],
+    glyphs:  'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sprite:  '',
+  };
+}
+
+/**
+ * Resolve the best available map style to use.
+ * Priority:
+ *   1. User-set VITE_MAP_STYLE_URL (env var)
+ *   2. Inline OSM raster style (no key needed)
+ *
+ * Never returns null — always falls back to OSM raster.
+ * @param {string} [customTileUrl] - Optional custom tile URL from serviceConfig
+ * @returns {{ style: string|object, isOsmFallback: boolean, isFallbackStyle: boolean }}
+ */
+export function resolveMapStyle(customTileUrl) {
+  if (ENV_STYLE_URL) {
+    return { style: ENV_STYLE_URL, isOsmFallback: false, isFallbackStyle: false };
+  }
+  if (customTileUrl) {
+    return { style: buildOsmRasterStyle(customTileUrl), isOsmFallback: true, isFallbackStyle: false };
+  }
+  return { style: buildOsmRasterStyle(), isOsmFallback: true, isFallbackStyle: true };
+}
