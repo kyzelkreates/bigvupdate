@@ -2,12 +2,16 @@
  * SettingsPanel.jsx — Big V's Best Routes™ Service Settings
  * Powered by 4P3X Intelligent AI | Created by Kyzel Kreates
  *
- * Production-grade service configuration panel.
- * Wires into storage.js SSOT — no duplicate storage.
- * All saves go through updateServiceConfig() recipe.
- * All tests use serviceTester.js — real pass/fail only.
+ * FIX v2.4.1 — All setState calls now use recipe functions (draft =>) 
+ * NOT pre-built state objects. This fixes the blank screen on save.
  *
- * ADVISORY ONLY — route guidance never guarantees legal compliance.
+ * Root cause of blank screen:
+ *   App.jsx setState(recipe) calls updateState(current, recipe)
+ *   which does recipe(draft). If recipe is an object (not a function)
+ *   it throws TypeError → React error boundary → blank screen.
+ *
+ * All updateCfg / updateSection / updateNested / runTest / handleReset
+ * now write directly to draft.serviceConfig via setState recipe functions.
  */
 
 import { useState, useCallback } from 'react';
@@ -18,8 +22,7 @@ import {
   ChevronDown, CheckCircle, Eye, EyeOff, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 
-import { updateServiceConfig, resetServiceConfig, saveServiceTestResult } from '../../core/storage.js';
-import { PROVIDER_LABELS, AI_PROVIDER_LABELS, PUBLIC_FALLBACK_WARNING, COMPLIANCE_DISCLAIMER } from '../../config/defaultServiceConfig.js';
+import { mergeWithDefaults, PROVIDER_LABELS, AI_PROVIDER_LABELS, PUBLIC_FALLBACK_WARNING, COMPLIANCE_DISCLAIMER } from '../../config/defaultServiceConfig.js';
 import {
   testMapStyle, testOsmTile, testMapboxProvider, testGoogleMapsProvider,
   testGeocoding, testReverseGeocoding, testOverpass, testRouting, testAiEndpoint,
@@ -27,12 +30,12 @@ import {
 } from '../../utils/serviceTester.js';
 import { validateMapboxToken } from '../../utils/secretGuards.js';
 
-import ServiceStatusCard  from './ServiceStatusCard.jsx';
-import EndpointInput      from './EndpointInput.jsx';
-import ApiKeyInput        from './ApiKeyInput.jsx';
+import ServiceStatusCard   from './ServiceStatusCard.jsx';
+import EndpointInput       from './EndpointInput.jsx';
+import ApiKeyInput         from './ApiKeyInput.jsx';
 import ProviderStatusBadge from './ProviderStatusBadge.jsx';
 
-// ─── Toggle component ─────────────────────────────────────────────────────────
+// ─── Toggle ───────────────────────────────────────────────────────────────────
 
 function Toggle({ id, label, value, onChange, hint, disabled }) {
   return (
@@ -55,7 +58,7 @@ function Toggle({ id, label, value, onChange, hint, disabled }) {
   );
 }
 
-// ─── Select component ─────────────────────────────────────────────────────────
+// ─── Select ───────────────────────────────────────────────────────────────────
 
 function SettingsSelect({ id, label, value, onChange, options, hint, disabled }) {
   return (
@@ -75,7 +78,7 @@ function SettingsSelect({ id, label, value, onChange, options, hint, disabled })
   );
 }
 
-// ─── Main Settings Panel ──────────────────────────────────────────────────────
+// ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export default function SettingsPanel({ state, setState }) {
   const cfg   = state.serviceConfig || {};
@@ -84,55 +87,82 @@ export default function SettingsPanel({ state, setState }) {
   const rte   = cfg.routing   || {};
   const ovp   = cfg.overpass  || {};
   const ai    = cfg.ai        || {};
-  const gps   = cfg.gps       || {};
   const tests = cfg.testResults || {};
 
-  const [testing,    setTesting]    = useState({});    // { serviceName: bool }
+  const [testing,    setTesting]    = useState({});
   const [saved,      setSaved]      = useState(false);
   const [testingAll, setTestingAll] = useState(false);
   const [resetDone,  setResetDone]  = useState(false);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // CORE HELPERS — all use recipe functions (draft =>) NOT pre-built objects
+  // ─────────────────────────────────────────────────────────────────────────
 
-  const updateCfg = useCallback((partial) => {
-    setState(updateServiceConfig(state, partial));
-  }, [state, setState]);
-
+  /**
+   * Update a top-level section of serviceConfig.
+   * e.g. updateSection('routing', { graphhopperKey: 'abc' })
+   */
   const updateSection = useCallback((section, partial) => {
-    updateCfg({ [section]: { ...(cfg[section] || {}), ...partial } });
-  }, [cfg, updateCfg]);
-
-  const updateNested = useCallback((section, subKey, partial) => {
-    updateCfg({
-      [section]: {
-        ...(cfg[section] || {}),
-        [subKey]: { ...((cfg[section] || {})[subKey] || {}), ...partial },
-      },
+    setState((draft) => {
+      if (!draft.serviceConfig) draft.serviceConfig = mergeWithDefaults(null);
+      draft.serviceConfig[section] = {
+        ...(draft.serviceConfig[section] || {}),
+        ...partial,
+      };
     });
-  }, [cfg, updateCfg]);
+  }, [setState]);
+
+  /**
+   * Update a nested key inside a section.
+   * e.g. updateNested('mapping', 'mapbox', { publicToken: 'pk.xxx' })
+   */
+  const updateNested = useCallback((section, subKey, partial) => {
+    setState((draft) => {
+      if (!draft.serviceConfig) draft.serviceConfig = mergeWithDefaults(null);
+      if (!draft.serviceConfig[section]) draft.serviceConfig[section] = {};
+      draft.serviceConfig[section][subKey] = {
+        ...(draft.serviceConfig[section][subKey] || {}),
+        ...partial,
+      };
+    });
+  }, [setState]);
 
   function markTesting(name, val) {
     setTesting((t) => ({ ...t, [name]: val }));
   }
 
+  /**
+   * Run a service test and save the result directly to draft.serviceConfig.
+   * Uses a recipe function — no pre-built state objects.
+   */
   async function runTest(name, testFn) {
     markTesting(name, true);
+    let result;
     try {
-      const result = await testFn();
-      setState(saveServiceTestResult(state, name, result));
+      result = await testFn();
     } catch (err) {
-      setState(saveServiceTestResult(state, name, {
+      result = {
         service: name, ok: false, status: 'failed',
         message: err?.message || 'Unexpected test error.',
         testedAt: new Date().toISOString(),
-      }));
+      };
     } finally {
       markTesting(name, false);
     }
+    // Write result via recipe function
+    setState((draft) => {
+      if (!draft.serviceConfig) draft.serviceConfig = mergeWithDefaults(null);
+      if (!draft.serviceConfig.testResults) draft.serviceConfig.testResults = {};
+      draft.serviceConfig.testResults[name] = result;
+      // Also update the provider-level status
+      if (draft.serviceConfig[name]) {
+        draft.serviceConfig[name].status      = result.ok ? 'success' : 'failed';
+        draft.serviceConfig[name].lastTestedAt = result.testedAt;
+      }
+    });
   }
 
   function handleSaveAll() {
-    // State is already live — just show save confirmation
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -142,8 +172,9 @@ export default function SettingsPanel({ state, setState }) {
     try {
       const results = await testAllServices(cfg);
       setState((draft) => {
+        if (!draft.serviceConfig) draft.serviceConfig = mergeWithDefaults(null);
+        if (!draft.serviceConfig.testResults) draft.serviceConfig.testResults = {};
         Object.entries(results).forEach(([name, result]) => {
-          if (!draft.serviceConfig.testResults) draft.serviceConfig.testResults = {};
           draft.serviceConfig.testResults[name] = result;
           if (draft.serviceConfig[name]) {
             draft.serviceConfig[name].status      = result.ok ? 'success' : 'failed';
@@ -158,12 +189,13 @@ export default function SettingsPanel({ state, setState }) {
 
   function handleReset() {
     if (!window.confirm('Reset all service settings to safe defaults? Your GraphHopper key and restriction data will be preserved.')) return;
-    setState(resetServiceConfig(state));
+    setState((draft) => {
+      draft.serviceConfig = mergeWithDefaults(null);
+    });
     setResetDone(true);
     setTimeout(() => setResetDone(false), 3000);
   }
 
-  // ── Demo mode toggle (in existing settings SSOT) ─────────────────────────
   function toggleDemoMode() {
     setState((draft) => { draft.settings.demoMode = !draft.settings.demoMode; });
   }
@@ -174,55 +206,48 @@ export default function SettingsPanel({ state, setState }) {
 
   return (
     <div className="settingsPanelWrap">
+
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="settingsPanelHeader">
-        <h1 className="settingsPanelTitle">
-          Big V's Best Routes™ Service Settings
-        </h1>
+        <h1 className="settingsPanelTitle">Big V's Best Routes™ Service Settings</h1>
         <p className="settingsPanelSubtitle">
-          Configure maps, routing, geocoding, GPS services, and open-source AI agents.
+          Configure maps, routing, geocoding, GPS, and open-source AI agents.
           Public OSM/MapLibre fallbacks stay available if custom services fail.
         </p>
         <p className="settingsBrand">
           Powered by <strong>4P3X Intelligent AI</strong> · Created by <strong>Kyzel Kreates</strong>
         </p>
-
-        {/* Public fallback warning */}
         <div className="fallbackWarningBanner" role="note">
           <TriangleAlert size={14} style={{ flexShrink: 0 }} />
           <span>{PUBLIC_FALLBACK_WARNING}</span>
         </div>
       </div>
 
-      {/* ── Demo Mode toggle ────────────────────────────────────────────── */}
+      {/* ── Demo Mode ───────────────────────────────────────────────────── */}
       <section className="settingsSection demoModeSection">
         <h2 className="settingsSectionTitle"><Eye size={16} /> Demo Mode</h2>
         <p className="settingsSectionDesc">
-          Enable demo mode to explore the app with a simulated route and sample data.
-          Turn off for production use with real GraphHopper routing and live GPS.
+          Enable demo mode to explore with simulated route data. Turn off for production use.
         </p>
         <Toggle
           id="demo-mode-toggle"
           label="Demo Mode"
           value={demoMode}
           onChange={toggleDemoMode}
-          hint={demoMode ? 'Demo mode is ON — using simulated route data' : 'Demo mode is OFF — live routing active'}
+          hint={demoMode ? 'ON — using simulated route data' : 'OFF — live routing active'}
         />
         {demoMode && (
           <div className="settingsInfoBox warning">
-            <TriangleAlert size={13} /> Demo mode is active. Route results are simulated and not suitable for real navigation.
+            <TriangleAlert size={13} /> Demo mode is active. Route results are simulated.
           </div>
         )}
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 1 — MAPPING SERVICES
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Mapping ──────────────────────────────────────────────────────── */}
       <section className="settingsSection">
         <h2 className="settingsSectionTitle"><Map size={16} /> Mapping Services</h2>
         <p className="settingsSectionDesc">
-          Select your active map provider. OSM / MapLibre public fallback is always available at no cost.
-          Custom, Mapbox, and Google Maps providers are optional.
+          Select your map provider. OSM / MapLibre public fallback is always available at no cost.
         </p>
 
         <ServiceStatusCard
@@ -233,10 +258,10 @@ export default function SettingsPanel({ state, setState }) {
           testResult={tests.mapping}
           onTest={() => runTest('mapping', () => {
             const active = map.activeProvider;
-            if (active === 'mapbox')       return testMapboxProvider(map.mapbox?.publicToken, map.mapbox?.styleUrl);
-            if (active === 'google_maps')  return testGoogleMapsProvider(map.googleMaps?.browserApiKey);
-            if (active === 'custom_tile')  return testOsmTile(map.customTileUrl);
-            if (active === 'osm_tile_public') return testOsmTile(map.osmTileUrl);
+            if (active === 'mapbox')           return testMapboxProvider(map.mapbox?.publicToken, map.mapbox?.styleUrl);
+            if (active === 'google_maps')      return testGoogleMapsProvider(map.googleMaps?.browserApiKey);
+            if (active === 'custom_tile')      return testOsmTile(map.customTileUrl);
+            if (active === 'osm_tile_public')  return testOsmTile(map.osmTileUrl);
             const url = active === 'custom_maplibre' ? map.customMapStyleUrl : map.maplibrePublicStyleUrl;
             return testMapStyle(url);
           })}
@@ -251,19 +276,15 @@ export default function SettingsPanel({ state, setState }) {
             value={map.activeProvider || 'maplibre_public'}
             onChange={(v) => updateSection('mapping', { activeProvider: v })}
             options={Object.entries(PROVIDER_LABELS).map(([value, label]) => ({ value, label }))}
-            hint="OSM / MapLibre Public is always available and requires no API key."
+            hint="OSM / MapLibre Public requires no API key."
           />
 
-          {/* OSM / MapLibre public info */}
           {(map.activeProvider === 'maplibre_public' || !map.activeProvider) && (
             <div className="settingsInfoBox">
-              <CheckCircle size={13} /> Using MapLibre public demo tiles. No API key required.
-              Suitable for testing. For production, configure a custom style URL or tile provider.
-              <br /><code style={{ fontSize: 11 }}>{map.maplibrePublicStyleUrl}</code>
+              <CheckCircle size={13} /> Using MapLibre public tiles. No API key required.
             </div>
           )}
 
-          {/* OSM tile */}
           {map.activeProvider === 'osm_tile_public' && (
             <EndpointInput
               id="osm-tile-url"
@@ -275,19 +296,17 @@ export default function SettingsPanel({ state, setState }) {
             />
           )}
 
-          {/* Custom MapLibre */}
           {map.activeProvider === 'custom_maplibre' && (
             <EndpointInput
               id="custom-style-url"
               label="Custom MapLibre Style URL"
               value={map.customMapStyleUrl || ''}
               onChange={(v) => updateSection('mapping', { customMapStyleUrl: v })}
-              hint="MapLibre GL-compatible style JSON URL. Falls back to OSM/MapLibre public if this fails."
+              hint="MapLibre GL-compatible style JSON URL."
               allowMapbox
             />
           )}
 
-          {/* Custom tile */}
           {map.activeProvider === 'custom_tile' && (
             <EndpointInput
               id="custom-tile-url"
@@ -301,14 +320,11 @@ export default function SettingsPanel({ state, setState }) {
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 4 — GOOGLE MAPS
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Google Maps ──────────────────────────────────────────────────── */}
       <section className="settingsSection">
         <h2 className="settingsSectionTitle"><Globe size={16} /> Google Maps (Optional)</h2>
         <p className="settingsSectionDesc">
-          Optional Google Maps integration. Requires a browser API key. Fails safely to OSM/MapLibre if not configured.
-          The app works fully without this.
+          Optional. Requires a browser API key. Fails safely to OSM/MapLibre if not configured.
         </p>
 
         <ServiceStatusCard
@@ -317,7 +333,9 @@ export default function SettingsPanel({ state, setState }) {
           status={map.googleMaps?.status}
           lastTestedAt={map.googleMaps?.lastTestedAt}
           testResult={map.googleMaps?.enabled ? tests.mapping : null}
-          onTest={map.googleMaps?.enabled ? () => runTest('mapping', () => testGoogleMapsProvider(map.googleMaps?.browserApiKey)) : undefined}
+          onTest={map.googleMaps?.enabled
+            ? () => runTest('mapping', () => testGoogleMapsProvider(map.googleMaps?.browserApiKey))
+            : undefined}
           testing={testing.mapping}
         >
           <Toggle
@@ -339,7 +357,6 @@ export default function SettingsPanel({ state, setState }) {
                 hint="Use a browser-restricted API key only. Never use a server/backend key."
                 fieldLabel="Google Maps browser API key"
               />
-
               <SettingsSelect
                 id="google-map-type"
                 label="Map Type"
@@ -352,24 +369,20 @@ export default function SettingsPanel({ state, setState }) {
                   { value: 'terrain',   label: 'Terrain' },
                 ]}
               />
-
               <div className="settingsInfoBox warning">
-                <TriangleAlert size={12} /> Google Maps is an optional overlay. If the API key is invalid or quota is exceeded,
-                the app automatically falls back to OSM/MapLibre. Route guidance remains advisory only.
+                <TriangleAlert size={12} /> If the API key is invalid, app falls back to OSM/MapLibre automatically.
               </div>
             </>
           )}
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 5 — MAPBOX
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Mapbox ───────────────────────────────────────────────────────── */}
       <section className="settingsSection">
         <h2 className="settingsSectionTitle"><Layers size={16} /> Mapbox (Optional)</h2>
         <p className="settingsSectionDesc">
-          Optional Mapbox integration. Requires a public token (pk.*). Secret tokens are not accepted.
-          Fails safely to OSM/MapLibre if not configured or if the token is invalid.
+          Optional. Requires a public token (pk.*). Secret tokens are blocked.
+          Fails safely to OSM/MapLibre if not configured.
         </p>
 
         <ServiceStatusCard
@@ -378,7 +391,9 @@ export default function SettingsPanel({ state, setState }) {
           status={map.mapbox?.status}
           lastTestedAt={map.mapbox?.lastTestedAt}
           testResult={map.mapbox?.enabled ? tests.mapping : null}
-          onTest={map.mapbox?.enabled ? () => runTest('mapping', () => testMapboxProvider(map.mapbox?.publicToken, map.mapbox?.styleUrl)) : undefined}
+          onTest={map.mapbox?.enabled
+            ? () => runTest('mapping', () => testMapboxProvider(map.mapbox?.publicToken, map.mapbox?.styleUrl))
+            : undefined}
           testing={testing.mapping}
         >
           <Toggle
@@ -403,32 +418,27 @@ export default function SettingsPanel({ state, setState }) {
                 hint="Only public tokens (pk.*) are accepted. Secret tokens (sk.*) are blocked."
                 fieldLabel="Mapbox public token"
               />
-
               <EndpointInput
                 id="mapbox-style-url"
                 label="Style URL"
                 value={map.mapbox?.styleUrl || 'mapbox://styles/mapbox/streets-v12'}
                 onChange={(v) => updateNested('mapping', 'mapbox', { styleUrl: v })}
-                hint="mapbox:// or https:// style URLs. Falls back to OSM/MapLibre on failure."
+                hint="mapbox:// or https:// style URLs."
                 allowMapbox
               />
-
               <div className="settingsInfoBox">
-                <Info size={12} /> If Mapbox token is invalid, the app falls back to OSM/MapLibre public tiles automatically.
+                <Info size={12} /> If Mapbox token is invalid, app falls back to OSM/MapLibre automatically.
               </div>
             </>
           )}
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 2 — ROUTING SERVICES
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Routing / GraphHopper ────────────────────────────────────────── */}
       <section className="settingsSection">
-        <h2 className="settingsSectionTitle"><Route size={16} /> Routing Services</h2>
+        <h2 className="settingsSectionTitle"><Route size={16} /> Routing — GraphHopper</h2>
         <p className="settingsSectionDesc">
-          GraphHopper routing configuration. Your existing GraphHopper key from Settings is preserved here.
-          Custom routing endpoints are supported.
+          GraphHopper routing configuration. Your existing key is preserved and synced here.
         </p>
 
         <ServiceStatusCard
@@ -437,11 +447,13 @@ export default function SettingsPanel({ state, setState }) {
           status={rte.status}
           lastTestedAt={rte.lastTestedAt}
           testResult={tests.routing}
-          onTest={() => runTest('routing', () => testRouting(
-            rte.graphhopperEndpoint || 'https://graphhopper.com/api/1',
-            rte.graphhopperKey || state.settings?.graphHopperApiKey || '',
-          ))}
+          onTest={() => {
+            const endpoint = rte.graphhopperEndpoint || 'https://graphhopper.com/api/1';
+            const key      = rte.graphhopperKey || state.settings?.graphHopperApiKey || '';
+            return runTest('routing', () => testRouting(endpoint, key));
+          }}
           testing={testing.routing}
+          defaultOpen
         >
           <EndpointInput
             id="gh-endpoint"
@@ -456,32 +468,38 @@ export default function SettingsPanel({ state, setState }) {
             label="GraphHopper API Key"
             savedValue={rte.graphhopperKey || state.settings?.graphHopperApiKey || ''}
             onSave={(v) => {
-              updateSection('routing', { graphhopperKey: v, status: 'untested' });
-              // Also update existing settings SSOT for backwards compat
-              setState((draft) => { draft.settings.graphHopperApiKey = v; });
+              // Write to both serviceConfig.routing AND settings.graphHopperApiKey (legacy compat)
+              setState((draft) => {
+                if (!draft.serviceConfig) draft.serviceConfig = mergeWithDefaults(null);
+                if (!draft.serviceConfig.routing) draft.serviceConfig.routing = {};
+                draft.serviceConfig.routing.graphhopperKey = v;
+                draft.serviceConfig.routing.status         = 'untested';
+                draft.settings.graphHopperApiKey           = v;
+              });
             }}
             placeholder="Paste your GraphHopper key…"
-            hint="Get a free key at graphhopper.com. Key is masked after save."
+            hint="Get a free key at graphhopper.com. Key is masked after save. Saves immediately."
             fieldLabel="GraphHopper API key"
           />
 
           {!rte.graphhopperKey && !state.settings?.graphHopperApiKey && (
             <div className="settingsInfoBox warning">
               <TriangleAlert size={12} /> No routing API key configured.
-              Route planning will show a setup-required state. Compliance AI advisory still functions.
+              Route planning will show a setup-required state.
+            </div>
+          )}
+
+          {(rte.graphhopperKey || state.settings?.graphHopperApiKey) && (
+            <div className="settingsInfoBox">
+              <CheckCircle size={12} /> GraphHopper key saved. Click "Test connection" to verify.
             </div>
           )}
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 3 — GEOCODING
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Geocoding ─────────────────────────────────────────────────────── */}
       <section className="settingsSection">
-        <h2 className="settingsSectionTitle"><Globe size={16} /> Geocoding Services</h2>
-        <p className="settingsSectionDesc">
-          Nominatim (OpenStreetMap) is the default public geocoder. Configure custom endpoints for production.
-        </p>
+        <h2 className="settingsSectionTitle"><Globe size={16} /> Geocoding</h2>
 
         <ServiceStatusCard
           title="Geocoding"
@@ -489,9 +507,9 @@ export default function SettingsPanel({ state, setState }) {
           status={geo.status}
           lastTestedAt={geo.lastTestedAt}
           testResult={tests.geocoding}
-          onTest={() => runTest('geocoding', () => testGeocoding(
-            geo.customSearchUrl || geo.searchUrl || 'https://nominatim.openstreetmap.org/search'
-          ))}
+          onTest={() => runTest('geocoding', () =>
+            testGeocoding(geo.customSearchUrl || geo.searchUrl || 'https://nominatim.openstreetmap.org/search')
+          )}
           testing={testing.geocoding}
         >
           <SettingsSelect
@@ -521,21 +539,18 @@ export default function SettingsPanel({ state, setState }) {
                 value={geo.customReverseUrl || ''}
                 onChange={(v) => updateSection('geocoding', { customReverseUrl: v })}
                 placeholder="https://your-geocoder.example.com/reverse"
-                hint="Must accept ?lat= ?lon= ?format=json parameters. Falls back to Nominatim."
+                hint="Must accept ?lat= ?lon= ?format=json parameters."
               />
             </>
           ) : (
             <div className="settingsInfoBox">
-              <CheckCircle size={12} /> Using Nominatim public geocoding (OpenStreetMap).
-              Free for light usage. For high-volume, configure a custom endpoint.
+              <CheckCircle size={12} /> Using Nominatim public geocoding (OpenStreetMap). Free for light usage.
             </div>
           )}
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 4 — OVERPASS
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Overpass ──────────────────────────────────────────────────────── */}
       <section className="settingsSection">
         <h2 className="settingsSectionTitle"><Globe size={16} /> Overpass / OSM Data</h2>
 
@@ -545,9 +560,9 @@ export default function SettingsPanel({ state, setState }) {
           status={ovp.status}
           lastTestedAt={ovp.lastTestedAt}
           testResult={tests.overpass}
-          onTest={() => runTest('overpass', () => testOverpass(
-            ovp.customEndpoint || ovp.endpoint || 'https://overpass-api.de/api/interpreter'
-          ))}
+          onTest={() => runTest('overpass', () =>
+            testOverpass(ovp.customEndpoint || ovp.endpoint || 'https://overpass-api.de/api/interpreter')
+          )}
           testing={testing.overpass}
         >
           <EndpointInput
@@ -555,20 +570,18 @@ export default function SettingsPanel({ state, setState }) {
             label="Overpass Endpoint"
             value={ovp.customEndpoint || ovp.endpoint || 'https://overpass-api.de/api/interpreter'}
             onChange={(v) => updateSection('overpass', { customEndpoint: v })}
-            hint="Default: overpass-api.de. Self-host with Overpass API for production."
+            hint="Default: overpass-api.de. Self-host for production."
             placeholder="https://overpass-api.de/api/interpreter"
           />
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 7 — OPEN-SOURCE AI AGENTS
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Open-Source AI ────────────────────────────────────────────────── */}
       <section className="settingsSection">
         <h2 className="settingsSectionTitle"><Brain size={16} /> Open-Source AI Agents</h2>
         <p className="settingsSectionDesc">
           Connect a self-hosted open-source AI server for enhanced advisory intelligence.
-          Only open-source/self-hostable AI providers are supported — proprietary AI services are not integrated.
+          Only open-source/self-hostable providers are supported.
         </p>
 
         <ServiceStatusCard
@@ -577,7 +590,9 @@ export default function SettingsPanel({ state, setState }) {
           status={ai.status}
           lastTestedAt={ai.lastTestedAt}
           testResult={tests.ai}
-          onTest={ai.enabled ? () => runTest('ai', () => testAiEndpoint(ai.providerType, ai.serverUrl, ai.modelName)) : undefined}
+          onTest={ai.enabled
+            ? () => runTest('ai', () => testAiEndpoint(ai.providerType, ai.serverUrl, ai.modelName))
+            : undefined}
           testing={testing.ai}
         >
           <Toggle
@@ -585,7 +600,7 @@ export default function SettingsPanel({ state, setState }) {
             label="Enable Local AI"
             value={ai.enabled || false}
             onChange={(v) => updateSection('ai', { enabled: v })}
-            hint="Connects to your local open-source AI server for enhanced compliance advisory."
+            hint="Connects to your local open-source AI server."
           />
 
           {ai.enabled && (
@@ -598,16 +613,14 @@ export default function SettingsPanel({ state, setState }) {
                 options={Object.entries(AI_PROVIDER_LABELS).map(([value, label]) => ({ value, label }))}
                 hint="All providers are open-source/self-hostable only."
               />
-
               <EndpointInput
                 id="ai-server-url"
                 label="Local AI Server URL"
                 value={ai.serverUrl || 'http://localhost:11434'}
                 onChange={(v) => updateSection('ai', { serverUrl: v, status: 'untested' })}
                 placeholder="http://localhost:11434"
-                hint="Your local AI server must be running. http://localhost is allowed for local dev."
+                hint="Your local AI server must be running."
               />
-
               <div className="settingsField">
                 <label htmlFor="ai-model-name" className="settingsLabel">Model Name</label>
                 <input
@@ -620,7 +633,6 @@ export default function SettingsPanel({ state, setState }) {
                 />
                 <p className="settingsHint">Leave blank to use server default.</p>
               </div>
-
               <SettingsSelect
                 id="ai-agent-mode"
                 label="Agent Mode"
@@ -632,21 +644,17 @@ export default function SettingsPanel({ state, setState }) {
                   { value: 'driver_advisory',     label: 'Driver Advisory' },
                 ]}
               />
-
               <div className="settingsInfoBox warning">
-                <TriangleAlert size={12} /> Local AI is advisory only. AI agent outputs never override legal route requirements.
-                Drivers must verify road signs, restrictions, and vehicle suitability.
+                <TriangleAlert size={12} /> Local AI is advisory only. AI outputs never override legal route requirements.
               </div>
             </>
           )}
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 8 — COMPLIANCE AI
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Compliance AI ─────────────────────────────────────────────────── */}
       <section className="settingsSection">
-        <h2 className="settingsSectionTitle"><Shield size={16} /> Safety & Compliance AI</h2>
+        <h2 className="settingsSectionTitle"><Shield size={16} /> Safety &amp; Compliance AI</h2>
 
         <ServiceStatusCard
           title="Compliance AI Status"
@@ -659,14 +667,12 @@ export default function SettingsPanel({ state, setState }) {
             label="Compliance AI Enabled"
             value={ai.complianceAgentEnabled !== false}
             onChange={(v) => updateSection('ai', { complianceAgentEnabled: v })}
-            hint="4P3X Intelligent Compliance AI runs locally — no external API required."
+            hint="4P3X Intelligent Compliance AI — no external API required."
           />
-
           <div className="settingsInfoBox complianceNotice">
             <Shield size={13} />
             <span>{COMPLIANCE_DISCLAIMER}</span>
           </div>
-
           <ul className="complianceFeatureList">
             {[
               'HAZMAT route flagging',
@@ -675,22 +681,14 @@ export default function SettingsPanel({ state, setState }) {
               'Lane restriction advisory',
               'Toll preference routing',
               'Driver plain-English summaries',
-            ].map((f) => (
-              <li key={f}><CheckCircle size={11} /> {f}</li>
-            ))}
+            ].map((f) => <li key={f}><CheckCircle size={11} /> {f}</li>)}
           </ul>
         </ServiceStatusCard>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 9 — SERVICE HEALTH
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Service Health ─────────────────────────────────────────────────── */}
       <section className="settingsSection">
         <h2 className="settingsSectionTitle"><Satellite size={16} /> Service Health</h2>
-        <p className="settingsSectionDesc">
-          Current status of all configured services. Use "Test All" to refresh.
-        </p>
-
         <div className="serviceHealthGrid">
           {[
             { name: 'mapping',   label: 'Mapping',   result: tests.mapping   },
@@ -713,19 +711,13 @@ export default function SettingsPanel({ state, setState }) {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 10 — RESET
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── Reset ──────────────────────────────────────────────────────────── */}
       <section className="settingsSection resetSection">
         <h2 className="settingsSectionTitle"><RefreshCcw size={16} /> Reset to Safe Defaults</h2>
         <p className="settingsSectionDesc">
-          Resets all service provider settings to their safe public defaults.
-          Does not affect your restriction data, vehicle profiles, or saved trips.
+          Resets all service settings to safe defaults. Does not affect restriction data or vehicle profiles.
         </p>
-        <button
-          type="button" className="ghost danger"
-          onClick={handleReset}
-        >
+        <button type="button" className="ghost danger" onClick={handleReset}>
           <RefreshCcw size={14} /> Reset Service Defaults
         </button>
         {resetDone && (
@@ -735,24 +727,16 @@ export default function SettingsPanel({ state, setState }) {
         )}
       </section>
 
-      {/* ── Global action bar ─────────────────────────────────────────────── */}
+      {/* ── Action bar ─────────────────────────────────────────────────────── */}
       <div className="settingsActionBar" role="group" aria-label="Settings actions">
-        <button
-          type="button" className="primary"
-          onClick={handleSaveAll}
-          disabled={saved}
-        >
+        <button type="button" className="primary" onClick={handleSaveAll} disabled={saved}>
           <Save size={15} /> {saved ? 'Saved ✓' : 'Save Settings'}
         </button>
-
-        <button
-          type="button" className="ghost"
-          onClick={handleTestAll}
-          disabled={testingAll}
-        >
+        <button type="button" className="ghost" onClick={handleTestAll} disabled={testingAll}>
           <FlaskConical size={15} /> {testingAll ? 'Testing all services…' : 'Test All Services'}
         </button>
       </div>
+
     </div>
   );
 }
