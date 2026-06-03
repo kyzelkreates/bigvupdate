@@ -329,6 +329,25 @@ export default function App() {
     onNavigationStop();
   }, []);
 
+  // ── Manual GPS toggle — called from GpsStatusPanel Start/Stop GPS btns ───
+  // GPS is NEVER started automatically — requires explicit user action.
+  const handleStartGps = useCallback(() => {
+    if (gpsWatchIdRef.current != null) return; // already watching
+    setState((draft) => { draft.navigation.gpsWatchActive = true; });
+    startGpsWatch();
+  }, [startGpsWatch]);  // eslint-disable-line
+
+  const handleStopGps = useCallback(() => {
+    if (gpsWatchIdRef.current == null) return; // not watching
+    stopLocationWatch(gpsWatchIdRef.current);
+    gpsWatchIdRef.current = null;
+    onNavigationStop();
+    setState((draft) => {
+      draft.navigation.gpsWatchActive = false;
+      draft.navigation.gpsStatus      = 'unavailable';
+    });
+  }, []);  // eslint-disable-line
+
   // ── GPS permission check on mount ────────────────────────────────────────
   useEffect(() => {
     checkLocationPermission().then((perm) => {
@@ -565,6 +584,8 @@ export default function App() {
             onToggleVoice={handleToggleVoice}
             onToggleMute={handleToggleVoiceMute}
             onRepeatInstruction={handleRepeatInstruction}
+            onStartGps={handleStartGps}
+            onStopGps={handleStopGps}
             agents={state.agents}
           />
         )}

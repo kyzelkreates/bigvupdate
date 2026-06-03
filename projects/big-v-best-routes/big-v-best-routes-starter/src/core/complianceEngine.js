@@ -31,7 +31,7 @@ export const ADVISORY_STATUS = {
 
 // ─── Main engine ─────────────────────────────────────────────────────────────
 
-export function runComplianceCheck({ vehicle, trip, restrictions, routeResult }) {
+export function runComplianceCheck({ vehicle, trip, restrictions, routeResult, navigationStatus }) {
   const warnings     = [];
   const evidence     = [];
   const missingData  = [];
@@ -58,6 +58,71 @@ export function runComplianceCheck({ vehicle, trip, restrictions, routeResult })
       detail: 'GraphHopper API key is required. Configure it in Settings before assessing compliance.',
     });
     score -= SCORE_DEDUCTIONS.providerError;
+  }
+
+  // ── Navigation/GPS status awareness (optional — advisory only) ───────────
+  // Injected by App.jsx when navigation is active.
+  // Adds advisory warnings — never blocks compliance output.
+  if (navigationStatus) {
+    const { locationPermission, gpsStatus, gpsIsStale, gpsAccuracy, offRouteStatus,
+            offRouteDistanceM, gpsWatchActive } = navigationStatus;
+
+    // GPS denied
+    if (locationPermission === 'denied') {
+      warnings.push({
+        id: 'gps-denied', level: 'warning',
+        title: 'GPS permission denied',
+        detail: 'Live position tracking is unavailable. Route guidance is positional-estimate only.',
+      });
+    }
+
+    // GPS unavailable
+    if (locationPermission === 'unavailable') {
+      warnings.push({
+        id: 'gps-unavailable', level: 'warning',
+        title: 'GPS unavailable on this device',
+        detail: 'Navigation uses simulated position. Route confidence is lower without live GPS.',
+      });
+    }
+
+    // GPS stale
+    if (gpsStatus === 'real' && gpsIsStale) {
+      warnings.push({
+        id: 'gps-stale', level: 'warning',
+        title: 'GPS signal stale',
+        detail: 'No GPS update received recently. Route progress tracking may be inaccurate.',
+      });
+      score -= 5;
+    }
+
+    // Low GPS accuracy
+    if (gpsStatus === 'real' && gpsAccuracy != null && gpsAccuracy > 75) {
+      warnings.push({
+        id: 'gps-low-accuracy', level: 'info',
+        title: `Low GPS accuracy (±${Math.round(gpsAccuracy)}m)`,
+        detail: 'Off-route detection threshold may be affected. Verify your position on-screen.',
+      });
+    }
+
+    // Driver off-route
+    if (offRouteStatus) {
+      warnings.push({
+        id: 'off-route-detected', level: 'warning',
+        title: 'Driver may be off the planned route',
+        detail: `Position is approximately ${Math.round(offRouteDistanceM || 0)}m from the planned route. `
+          + 'Re-check route suitability, road signs, and restrictions before continuing.',
+      });
+      score -= 10;
+    }
+
+    // Route confidence low (GPS not active when navigating)
+    if (!gpsWatchActive && locationPermission !== 'denied' && locationPermission !== 'unavailable') {
+      warnings.push({
+        id: 'gps-not-watching', level: 'info',
+        title: 'GPS tracking not active',
+        detail: 'Start GPS for live position tracking and route progress during navigation.',
+      });
+    }
   }
 
   // ── Required legal-critical field checks ─────────────────────────────────
